@@ -25,10 +25,9 @@ def get_wallet_balance(session, account_type="CONTRACT"):
 
             # balance_list가 리스트로 오는 경우, 전체 잔고와 사용 가능한 잔고를 출력합니다.
             for item in balance_list:
-                if isinstance(item, dict) and item.get('coin') and isinstance(item['coin'], list) and item['coin'][0].get('coin') == 'USDT':
-                    coin_info = item['coin'][0]
-                    total_balance = coin_info.get('equity', 'N/A')
-                    available_balance = coin_info.get('availableToWithdraw', 'N/A')
+                if isinstance(item, dict) and item.get('coin') == 'USDT':
+                    total_balance = item.get('equity', 'N/A')
+                    available_balance = item.get('availableToWithdraw', 'N/A')
                     print(f"USDT Total Balance: {total_balance}, Available Balance: {available_balance}")
                     break
             else:
@@ -69,10 +68,9 @@ def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5):
             category="linear",
             symbol=symbol,
             side="Buy",
-            orderType="MARKET",  # 주문 유형을 대문자로 수정
-            qty=qty,
-            timeInForce="IOC",  # GTC 대신 IOC (Immediate Or Cancel) 사용
-            leverage=leverage,  # 레버리지 설정 변경
+            orderType="Market",  # 주문 유형을 대문자로 수정
+            qty=str(qty),
+            timeInForce="IOC",  # 즉시 체결 혹은 취소
             positionIdx=1,  # hedge-mode Buy side
         )
         print(response)  # 주문 응답 출력
