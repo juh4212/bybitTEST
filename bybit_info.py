@@ -65,11 +65,10 @@ def get_linear_positions(session, symbol="BTCUSDT"):
 def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="ISOLATED"):
     """Linear 계약 포지션을 진입하는 함수 (헷지모드 Buy side, 레버리지 5배, 마켓 가격으로)"""
     try:
-        # 레버리지 설정
         print(session.set_leverage(
-            category="linear",
-            symbol=symbol,
-            buyLeverage=leverage,
+            category="linear", 
+            symbol=symbol, 
+            buyLeverage=leverage, 
             sellLeverage=leverage
         ))
             category="linear",
@@ -83,10 +82,9 @@ def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="IS
             sellLeverage=leverage,
         )
         
-        # 마진 유형 설정
         print(session.set_margin_type(
-            category="linear",
-            symbol=symbol,
+            category="linear", 
+            symbol=symbol, 
             marginType=marginType
         ))
             category="linear",
@@ -97,7 +95,7 @@ def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="IS
         # 주문 전 포지션 확인
         positions_response = session.get_positions(
             category="linear",
-            symbol=symbol,
+            symbol=symbol
         )
         if positions_response['retCode'] == 0:
             positions = positions_response.get('result', {}).get('list', [])
