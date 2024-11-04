@@ -69,12 +69,11 @@ def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5):
             category="linear",
             symbol=symbol,
             side="Buy",
-            orderType="Market",  # 주문 유형을 대문자로 수정
+            orderType="MARKET",  # 주문 유형을 대문자로 수정
             qty=qty,
             timeInForce="IOC",  # GTC 대신 IOC (Immediate Or Cancel) 사용
             leverage=leverage,  # 레버리지 설정 변경
             positionIdx=1,  # hedge-mode Buy side
-            orderFilter="Order",
         )
         print(response)  # 주문 응답 출력
         if response['retCode'] == 0:
