@@ -65,19 +65,23 @@ def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="IS
     """Linear 계약 포지션을 진입하는 함수 (헷지모드 Buy side, 레버리지 5배, 마켓 가격으로)"""
     try:
         # 레버리지 설정
-        session.set_leverage(
+        response = session.set_leverage(
             category="linear",
             symbol=symbol,
             buyLeverage=leverage,
             sellLeverage=leverage,
         )
-
+        if response['retCode'] != 0:
+            print(f"Error setting leverage: {response['retMsg']}")
+            return
         # 마진 유형 설정
-        session.set_margin_type(
+        response = session.set_margin_type(
             category="linear",
             symbol=symbol,
-            marginType=marginType
-        )
+            marginType=marginType)
+        if response['retCode'] != 0:
+            print(f"Error setting margin type: {response['retMsg']}")
+            return
 
         response = session.place_order(
             category="linear",
