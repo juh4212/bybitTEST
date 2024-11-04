@@ -25,9 +25,10 @@ def get_wallet_balance(session, account_type="CONTRACT"):
 
             # balance_list가 리스트로 오는 경우, 전체 잔고와 사용 가능한 잔고를 출력합니다.
             for item in balance_list:
-                if isinstance(item, dict) and item['coin'] == 'USDT':
-                    total_balance = item.get('equity', 'N/A')
-                    available_balance = item.get('availableToWithdraw', 'N/A')
+                if isinstance(item, dict) and item.get('coin') and isinstance(item['coin'], list) and item['coin'][0].get('coin') == 'USDT':
+                    coin_info = item['coin'][0]
+                    total_balance = coin_info.get('equity', 'N/A')
+                    available_balance = coin_info.get('availableToWithdraw', 'N/A')
                     print(f"USDT Total Balance: {total_balance}, Available Balance: {available_balance}")
                     break
             else:
