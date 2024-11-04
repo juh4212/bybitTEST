@@ -20,14 +20,15 @@ def get_wallet_balance(session, account_type="CONTRACT"):
         print(response)  # 응답 데이터 출력
 
         if response['retCode'] == 0:
-            balance_list = response['result']['list'][0]['coin']
+            balance_list = response['result']['list']
             print("Wallet Balance:")
 
             # balance_list가 리스트로 오는 경우, 전체 잔고와 사용 가능한 잔고를 출력합니다.
-                        for item in balance_list:
-            if isinstance(item, dict) and item.get('coin') == 'USDT':
-                    total_balance = item.get('equity', 'N/A')
-                    available_balance = item.get('availableToWithdraw', 'N/A')
+            for item in balance_list:
+                if isinstance(item, dict) and item.get('coin') and isinstance(item['coin'], list) and item['coin'][0].get('coin') == 'USDT':
+                    coin_info = item['coin'][0]
+                    total_balance = coin_info.get('equity', 'N/A')
+                    available_balance = coin_info.get('availableToWithdraw', 'N/A')
                     print(f"USDT Total Balance: {total_balance}, Available Balance: {available_balance}")
                     break
             else:
@@ -61,35 +62,17 @@ def get_linear_positions(session, symbol="BTCUSDT"):
     except Exception as e:
         print(f"An error occurred while fetching linear positions: {e}")
 
-def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="ISOLATED"):
+def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5):
     """Linear 계약 포지션을 진입하는 함수 (헷지모드 Buy side, 레버리지 5배, 마켓 가격으로)"""
     try:
-        # 레버리지 설정
-        response = session.set_leverage(
-            category="linear",
-            symbol=symbol,
-            buyLeverage=leverage,
-            sellLeverage=leverage,
-        )
-        if response['retCode'] != 0:
-            print(f"Error setting leverage: {response['retMsg']}")
-            return
-        # 마진 유형 설정
-        response = session.set_margin_type(
-            category="linear",
-            symbol=symbol,
-            marginType=marginType)
-        if response['retCode'] != 0:
-            print(f"Error setting margin type: {response['retMsg']}")
-            return
-
         response = session.place_order(
             category="linear",
             symbol=symbol,
             side="Buy",
-            orderType="Market",  # 주문 유형을 대문자로 수정
-            qty=str(qty),
-            timeInForce="IOC",  # 즉시 체결 혹은 취소
+            orderType="MARKET",  # 주문 유형을 대문자로 수정
+            qty=qty,
+            timeInForce="IOC",  # GTC 대신 IOC (Immediate Or Cancel) 사용
+            leverage=leverage,  # 레버리지 설정 변경
             positionIdx=1,  # hedge-mode Buy side
         )
         print(response)  # 주문 응답 출력
