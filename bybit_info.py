@@ -69,10 +69,10 @@ def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5):
             category="linear",
             symbol=symbol,
             side="Buy",
-            orderType="market",
+            orderType="Market",  # 주문 유형을 대문자로 수정
             qty=qty,
-            timeInForce="GTC",  # PostOnly 대신 GTC (Good Till Cancelled) 사용
-            isLeverage=leverage,
+            timeInForce="IOC",  # GTC 대신 IOC (Immediate Or Cancel) 사용
+            leverage=leverage,  # 레버리지 설정 변경
             positionIdx=1,  # hedge-mode Buy side
             orderFilter="Order",
         )
