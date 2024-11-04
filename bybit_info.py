@@ -42,6 +42,8 @@ def get_linear_positions(session, symbol="BTCUSDT"):
     """Linear 계약 포지션 정보를 조회하는 함수"""
     try:
         response = session.get_positions(
+            category="linear",
+            symbol=symbol,
         )
         print(response)  # 응답 데이터 출력
 
@@ -60,71 +62,38 @@ def get_linear_positions(session, symbol="BTCUSDT"):
     except Exception as e:
         print(f"An error occurred while fetching linear positions: {e}")
 
-def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="ISOLATED"):
-    """Linear 계약 포지션을 진입하는 함수 (헷지모드 Buy side, 레버리지 5배, 마켓 가격으로)"""
+def place_order(session, symbol="BTCUSDT", qty="0.001", leverage=5):
+    """Linear 계약에 레버리지 5배로 BTCUSDT Market Buy 주문을 제출합니다."""
     try:
-        print(session.set_leverage(
-    category="linear", 
-    symbol=symbol, 
-    sellLeverage=leverage
-))
+        # 레버리지 설정
+        response_leverage = session.set_leverage(
             category="linear",
             symbol=symbol,
             buyLeverage=leverage,
             sellLeverage=leverage
         )
-            category="linear",
-            symbol=symbol,
-            buyLeverage=leverage,
-        )
-        
-        print(session.set_margin_type(
-    category="linear", 
-    symbol=symbol, 
-    marginType=marginType
-))
-            category="linear",
-            symbol=symbol,
-        
+        print(response_leverage)
 
-        # 주문 전 포지션 확인
-        positions_response = session.get_positions(
-            category="linear",
-            symbol=symbol
-        )
-        if positions_response['retCode'] == 0:
-            positions = positions_response.get('result', {}).get('list', [])
-            for pos in positions:
-                if pos['side'] == 'Buy' and float(pos['size']) > 0:
-                    print("Existing Buy position found, not placing a new order.")
-                    return
-        else:
-            print(f"Error checking positions: {positions_response['retMsg']}")
+        if response_leverage['retCode'] != 0:
+            print(f"레버리지 설정 실패: {response_leverage['retMsg']}")
             return
 
-        print(session.place_order(
-    category="linear",
-    symbol=symbol,
-    side="Buy",
-    orderType="MARKET",
-    qty=str(qty),
-    timeInForce="IOC",
-    positionIdx=1
-))
+        # 주문 제출
+        response_order = session.place_order(
             category="linear",
             symbol=symbol,
             side="Buy",
-            orderType="MARKET",  # 주문 유형을 대문자로 수정
-            qty=str(qty),
-            timeInForce="IOC",  # GTC 대신 IOC (Immediate Or Cancel) 사용
-              # 레버리지 설정 변경
-            positionIdx=1,  # hedge-mode Buy side
+            orderType="Market",
+            qty=qty,
+            positionIdx=1,  # 헷지 모드 Buy 포지션
+            timeInForce="IOC"  # 즉시 체결 혹은 취소
         )
-        print(response)  # 주문 응답 출력
-        if response['retCode'] == 0:
-            print("Order placed successfully.")
+        print(response_order)
+
+        if response_order['retCode'] == 0:
+            print(f"주문 성공: 주문 ID {response_order['result']['orderId']}")
         else:
-            print(f"Error placing order: {response['retMsg']}")
+            print(f"주문 실패: {response_order['retMsg']}")
     except Exception as e:
         print(f"An error occurred while placing the order: {e}")
 
@@ -137,7 +106,7 @@ def main():
     
     # Bybit 세션 생성 (testnet=False로 설정하여 메인넷 사용)
     session = HTTP(
-        testnet=False,  # 테스트넷을 사용하려면 True로 설정
+        testnet=True,  # 테스트넷을 사용하려면 True로 설정
         api_key=api_key,
         api_secret=api_secret,
     )
