@@ -62,6 +62,28 @@ def get_linear_positions(session, symbol="BTCUSDT"):
     except Exception as e:
         print(f"An error occurred while fetching linear positions: {e}")
 
+def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5):
+    """Linear 계약 포지션을 진입하는 함수 (헷지모드 Buy side, 레버리지 5배, 마켓 가격으로)"""
+    try:
+        response = session.place_order(
+            category="linear",
+            symbol=symbol,
+            side="Buy",
+            orderType="market",
+            qty=qty,
+            timeInForce="GTC",  # PostOnly 대신 GTC (Good Till Cancelled) 사용
+            isLeverage=leverage,
+            positionIdx=1,  # hedge-mode Buy side
+            orderFilter="Order",
+        )
+        print(response)  # 주문 응답 출력
+        if response['retCode'] == 0:
+            print("Order placed successfully.")
+        else:
+            print(f"Error placing order: {response['retMsg']}")
+    except Exception as e:
+        print(f"An error occurred while placing the order: {e}")
+
 def main():
     try:
         api_key, api_secret = get_api_credentials()
@@ -81,6 +103,9 @@ def main():
     
     print("\nFetching Linear Positions...")
     get_linear_positions(session)
+    
+    print("\nPlacing Order...")
+    place_order(session)
 
 if __name__ == "__main__":
     main()
