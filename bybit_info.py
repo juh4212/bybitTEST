@@ -1,97 +1,69 @@
 import os
-import requests
-import time
-import hashlib
-import hmac
-import urllib.parse
+from pybit.unified_trading import HTTP
 
-# 환경 변수에서 API 키와 시크릿 키 불러오기
-API_KEY = os.getenv('BYBIT_API_KEY')
-API_SECRET = os.getenv('BYBIT_API_SECRET')
+def get_api_credentials():
+    """환경 변수에서 API 키와 시크릿 키를 불러옵니다."""
+    api_key = os.getenv('BYBIT_API_KEY')
+    api_secret = os.getenv('BYBIT_API_SECRET')
+    
+    if not api_key or not api_secret:
+        raise EnvironmentError("BYBIT_API_KEY와 BYBIT_API_SECRET 환경 변수가 설정되어 있어야 합니다.")
+    
+    return api_key, api_secret
 
-# Bybit REST API 엔드포인트
-BASE_URL = 'https://api.bybit.com'
-
-def generate_signature(secret, params):
-    """Bybit API 서명 생성 함수"""
-    ordered_params = urllib.parse.urlencode(sorted(params.items()))
-    to_sign = ordered_params
-    return hmac.new(secret.encode('utf-8'), to_sign.encode('utf-8'), hashlib.sha256).hexdigest()
-
-def get_wallet_balance():
-    """계좌 잔고 조회 함수"""
-    endpoint = '/v2/private/wallet/balance'
-    url = BASE_URL + endpoint
-
-    # 현재 타임스탬프 (밀리초)
-    timestamp = int(time.time() * 1000)
-
-    params = {
-        'api_key': API_KEY,
-        'timestamp': timestamp,
-        'coin': 'USDT',  # 조회하고자 하는 코인
-    }
-
-    # 서명 생성
-    params['sign'] = generate_signature(API_SECRET, params)
-
+def get_wallet_balance(session, account_type="CONTRACT", coin="USDT"):
+    """계좌 잔고를 조회하는 함수"""
     try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        data = response.json()
-
-        if data['ret_code'] == 0:
-            balance_info = data['result']
+        response = session.get_wallet_balance(
+            accountType=account_type,
+            coin=coin,
+        )
+        if response['retMsg'] == 'OK':
+            balance_info = response['result']
             print("Wallet Balance:")
             for coin, info in balance_info.items():
-                print(f"{coin}: {info['available_balance']} available, {info['used_margin']} used")
+                print(f"{coin}: {info['availableBalance']} available, {info['usedMargin']} used")
         else:
-            print(f"Error {data['ret_code']}: {data['ret_msg']}")
-    except requests.exceptions.RequestException as e:
-        print(f"HTTP Request failed: {e}")
+            print(f"Error: {response['retMsg']}")
+    except Exception as e:
+        print(f"An error occurred while fetching wallet balance: {e}")
 
-def get_linear_positions():
-    """Linear 계약 포지션 정보 조회 함수"""
-    endpoint = '/private/linear/position/list'
-    url = BASE_URL + endpoint
-
-    # 현재 타임스탬프 (밀리초)
-    timestamp = int(time.time() * 1000)
-
-    params = {
-        'api_key': API_KEY,
-        'timestamp': timestamp,
-        'category': 'linear',  # Linear 계약 카테고리
-        'is_null': False,      # 포지션이 있는 것만 조회
-    }
-
-    # 서명 생성
-    params['sign'] = generate_signature(API_SECRET, params)
-
+def get_linear_positions(session, symbol="BTCUSD"):
+    """Linear 계약 포지션 정보를 조회하는 함수"""
     try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        data = response.json()
-
-        if data['ret_code'] == 0:
-            positions = data['result']
+        response = session.get_positions(
+            category="linear",
+            symbol=symbol,
+        )
+        if response['retMsg'] == 'OK':
+            positions = response['result']['data']
             print("Linear Positions:")
             for pos in positions:
-                print(f"Symbol: {pos['symbol']}, Size: {pos['size']}, Side: {pos['side']}, Entry Price: {pos['entry_price']}")
+                print(f"Symbol: {pos['symbol']}, Size: {pos['size']}, Side: {pos['side']}, Entry Price: {pos['entryPrice']}")
         else:
-            print(f"Error {data['ret_code']}: {data['ret_msg']}")
-    except requests.exceptions.RequestException as e:
-        print(f"HTTP Request failed: {e}")
+            print(f"Error: {response['retMsg']}")
+    except Exception as e:
+        print(f"An error occurred while fetching linear positions: {e}")
 
 def main():
+    try:
+        api_key, api_secret = get_api_credentials()
+    except EnvironmentError as e:
+        print(e)
+        return
+    
+    # Bybit 세션 생성 (testnet=False로 설정하여 메인넷 사용)
+    session = HTTP(
+        testnet=False,  # 테스트넷을 사용하려면 True로 설정
+        api_key=api_key,
+        api_secret=api_secret,
+    )
+    
     print("Fetching Wallet Balance...")
-    get_wallet_balance()
+    get_wallet_balance(session)
+    
     print("\nFetching Linear Positions...")
-    get_linear_positions()
+    get_linear_positions(session)
 
 if __name__ == "__main__":
-    # API 키와 시크릿 키가 설정되어 있는지 확인
-    if not API_KEY or not API_SECRET:
-        print("Error: BYBIT_API_KEY and BYBIT_API_SECRET environment variables must be set.")
-    else:
-        main()
+    main()
