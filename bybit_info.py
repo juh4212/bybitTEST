@@ -16,18 +16,18 @@ def get_wallet_balance(session, account_type="CONTRACT", coin="USDT"):
     try:
         response = session.get_wallet_balance(
             accountType=account_type,
-            coin=coin,
         )
         print(response)  # 응답 데이터 출력
 
         if response['retCode'] == 0:
-            balance_info = response['result']
+            balance_list = response['result']['list']
             print("Wallet Balance:")
 
-            # balance_info가 딕셔너리로 오는 경우, 원하는 코인을 찾아 접근해야 합니다.
-            if isinstance(balance_info, dict) and coin in balance_info:
-                info = balance_info[coin]
-                print(f"{coin}: {info['availableBalance']} available, {info['usedMargin']} used")
+            # balance_list가 리스트로 오는 경우, 원하는 코인을 찾아 접근해야 합니다.
+            for item in balance_list:
+                if item['coin'] == coin:
+                    print(f"{coin}: {item['walletBalance']} available, {item['availableToWithdraw']} available to withdraw")
+                    break
             else:
                 print(f"No balance information found for {coin}")
         else:
