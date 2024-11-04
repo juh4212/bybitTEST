@@ -70,6 +70,11 @@ def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="IS
             category="linear",
             symbol=symbol,
             buyLeverage=leverage,
+            sellLeverage=leverage
+        )
+            category="linear",
+            symbol=symbol,
+            buyLeverage=leverage,
             sellLeverage=leverage,
         )
         if response['retCode'] != 0:
@@ -84,14 +89,29 @@ def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="IS
             print(f"Error setting margin type: {response['retMsg']}")
             return
 
+        # 주문 전 포지션 확인
+        positions_response = session.get_positions(
+            category="linear",
+            symbol=symbol,
+        )
+        if positions_response['retCode'] == 0:
+            positions = positions_response.get('result', {}).get('list', [])
+            for pos in positions:
+                if pos['side'] == 'Buy' and float(pos['size']) > 0:
+                    print("Existing Buy position found, not placing a new order.")
+                    return
+        else:
+            print(f"Error checking positions: {positions_response['retMsg']}")
+            return
+
         response = session.place_order(
             category="linear",
             symbol=symbol,
             side="Buy",
             orderType="MARKET",  # 주문 유형을 대문자로 수정
-            qty=qty,
+            qty=str(qty),
             timeInForce="IOC",  # GTC 대신 IOC (Immediate Or Cancel) 사용
-            leverage=leverage,  # 레버리지 설정 변경
+              # 레버리지 설정 변경
             positionIdx=1,  # hedge-mode Buy side
         )
         print(response)  # 주문 응답 출력
