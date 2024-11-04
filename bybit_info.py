@@ -62,6 +62,41 @@ def get_linear_positions(session, symbol="BTCUSDT"):
     except Exception as e:
         print(f"An error occurred while fetching linear positions: {e}")
 
+def place_order(session, symbol="BTCUSDT", qty="0.001", leverage=5):
+    """Linear 계약에 레버리지 5배로 BTCUSDT Market Buy 주문을 제출합니다."""
+    try:
+        # 레버리지 설정
+        response_leverage = session.set_leverage(
+            category="linear",
+            symbol=symbol,
+            buyLeverage=leverage,
+            sellLeverage=leverage
+        )
+        print(response_leverage)
+
+        if response_leverage['retCode'] != 0:
+            print(f"레버리지 설정 실패: {response_leverage['retMsg']}")
+            return
+
+        # 주문 제출
+        response_order = session.place_order(
+            category="linear",
+            symbol=symbol,
+            side="Buy",
+            orderType="Market",
+            qty=qty,
+            positionIdx=1,  # 헷지 모드 Buy 포지션
+            timeInForce="IOC"  # 즉시 체결 혹은 취소
+        )
+        print(response_order)
+
+        if response_order['retCode'] == 0:
+            print(f"주문 성공: 주문 ID {response_order['result']['orderId']}")
+        else:
+            print(f"주문 실패: {response_order['retMsg']}")
+    except Exception as e:
+        print(f"An error occurred while placing the order: {e}")
+
 def main():
     try:
         api_key, api_secret = get_api_credentials()
