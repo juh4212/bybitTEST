@@ -11,7 +11,7 @@ def get_api_credentials():
     
     return api_key, api_secret
 
-def get_wallet_balance(session, account_type="CONTRACT", coin="USDT"):
+def get_wallet_balance(session, account_type="CONTRACT"):
     """계좌 잔고를 조회하는 함수"""
     try:
         response = session.get_wallet_balance(
@@ -23,13 +23,15 @@ def get_wallet_balance(session, account_type="CONTRACT", coin="USDT"):
             balance_list = response['result']['list']
             print("Wallet Balance:")
 
-            # balance_list가 리스트로 오는 경우, 원하는 코인을 찾아 접근해야 합니다.
+            # balance_list가 리스트로 오는 경우, 전체 잔고와 사용 가능한 잔고를 출력합니다.
             for item in balance_list:
-                if item['coin'] == coin:
-                    print(f"{coin}: {item['walletBalance']} available, {item['availableToWithdraw']} available to withdraw")
+                if item['coin'] == 'USDT':
+                    total_balance = item.get('walletBalance', 'N/A')
+                    available_balance = item.get('availableToWithdraw', 'N/A')
+                    print(f"USDT Total Balance: {total_balance}, Available Balance: {available_balance}")
                     break
             else:
-                print(f"No balance information found for {coin}")
+                print("No balance information found for USDT")
         else:
             print(f"Error: {response['retMsg']}")
     except Exception as e:
