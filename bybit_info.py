@@ -66,12 +66,24 @@ def place_order(session, symbol="BTCUSDT", qty="0.001", leverage=5):
     """Linear 계약에 레버리지 5배로 BTCUSDT Market Buy 주문을 제출합니다."""
     try:
         # 레버리지 설정
-        response_leverage = session.set_leverage(
-            category="linear",
-            symbol=symbol,
-            buyLeverage=str(leverage),
-            sellLeverage=str(leverage)
-        )
+        # 레버리지를 설정하기 전에 현재 레버리지 값을 확인
+        current_positions = session.get_positions(category="linear", symbol=symbol)
+        current_leverage = None
+        if current_positions['retCode'] == 0 and len(current_positions['result']['list']) > 0:
+            current_leverage = current_positions['result']['list'][0].get('leverage')
+        
+        if current_leverage != leverage:
+            response_leverage = session.set_leverage(
+                category="linear",
+                symbol=symbol,
+                buyLeverage=str(leverage),
+                sellLeverage=str(leverage)
+            )
+            print(response_leverage)
+
+            if response_leverage['retCode'] != 0:
+                print(f"레버리지 설정 실패: {response_leverage['retMsg']}")
+                return
         print(response_leverage)
 
         if response_leverage['retCode'] != 0:
