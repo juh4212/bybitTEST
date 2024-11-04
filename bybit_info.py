@@ -62,9 +62,24 @@ def get_linear_positions(session, symbol="BTCUSDT"):
     except Exception as e:
         print(f"An error occurred while fetching linear positions: {e}")
 
-def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5):
+def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="ISOLATED"):
     """Linear 계약 포지션을 진입하는 함수 (헷지모드 Buy side, 레버리지 5배, 마켓 가격으로)"""
     try:
+        # 레버리지 설정
+        session.set_leverage(
+            category="linear",
+            symbol=symbol,
+            buyLeverage=leverage,
+            sellLeverage=leverage,
+        )
+
+        # 마진 유형 설정
+        session.set_margin_type(
+            category="linear",
+            symbol=symbol,
+            marginType=marginType
+        )
+
         response = session.place_order(
             category="linear",
             symbol=symbol,
