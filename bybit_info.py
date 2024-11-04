@@ -69,8 +69,8 @@ def place_order(session, symbol="BTCUSDT", qty="0.001", leverage=5):
         response_leverage = session.set_leverage(
             category="linear",
             symbol=symbol,
-            buyLeverage=leverage,
-            sellLeverage=leverage
+            buyLeverage=str(leverage),
+            sellLeverage=str(leverage)
         )
         print(response_leverage)
 
