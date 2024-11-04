@@ -42,8 +42,6 @@ def get_linear_positions(session, symbol="BTCUSDT"):
     """Linear 계약 포지션 정보를 조회하는 함수"""
     try:
         response = session.get_positions(
-            category="linear",
-            symbol=symbol,
         )
         print(response)  # 응답 데이터 출력
 
@@ -66,11 +64,10 @@ def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="IS
     """Linear 계약 포지션을 진입하는 함수 (헷지모드 Buy side, 레버리지 5배, 마켓 가격으로)"""
     try:
         print(session.set_leverage(
-            category="linear", 
-            symbol=symbol, 
-            buyLeverage=leverage, 
-            sellLeverage=leverage
-        ))
+    category="linear", 
+    symbol=symbol, 
+    sellLeverage=leverage
+))
             category="linear",
             symbol=symbol,
             buyLeverage=leverage,
@@ -79,17 +76,15 @@ def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="IS
             category="linear",
             symbol=symbol,
             buyLeverage=leverage,
-            sellLeverage=leverage,
         )
         
         print(session.set_margin_type(
-            category="linear", 
-            symbol=symbol, 
-            marginType=marginType
-        ))
+    category="linear", 
+    symbol=symbol, 
+    marginType=marginType
+))
             category="linear",
             symbol=symbol,
-            marginType=marginType)
         
 
         # 주문 전 포지션 확인
@@ -108,14 +103,14 @@ def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="IS
             return
 
         print(session.place_order(
-            category="linear",
-            symbol=symbol,
-            side="Buy",
-            orderType="MARKET",
-            qty=str(qty),
-            timeInForce="IOC",
-            positionIdx=1
-        ))
+    category="linear",
+    symbol=symbol,
+    side="Buy",
+    orderType="MARKET",
+    qty=str(qty),
+    timeInForce="IOC",
+    positionIdx=1
+))
             category="linear",
             symbol=symbol,
             side="Buy",
