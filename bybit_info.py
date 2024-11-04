@@ -21,13 +21,14 @@ def get_wallet_balance(session, account_type="CONTRACT", coin="USDT"):
         print(response)  # 응답 데이터 출력
 
         if response['retCode'] == 0:
-            balance_info = response['result']
+            balance_info = response['result']['list']
             print("Wallet Balance:")
 
-            # balance_info가 딕셔너리로 오는 경우, 원하는 코인을 찾아 접근해야 합니다.
-            if isinstance(balance_info, dict) and coin in balance_info:
-                info = balance_info[coin]
-                print(f"{coin}: {info['availableBalance']} available, {info['usedMargin']} used")
+            # balance_info가 리스트로 오는 경우, 원하는 코인을 찾아 접근해야 합니다.
+            for item in balance_info:
+                if item['coin'] == coin:
+                    print(f"{coin}: {item['walletBalance']} available, {item['availableToWithdraw']} available to withdraw")
+                    break
             else:
                 print(f"No balance information found for {coin}")
         else:
@@ -35,7 +36,7 @@ def get_wallet_balance(session, account_type="CONTRACT", coin="USDT"):
     except Exception as e:
         print(f"An error occurred while fetching wallet balance: {e}")
 
-def get_linear_positions(session, symbol="BTCUSD"):
+def get_linear_positions(session, symbol="BTCUSDT"):
     """Linear 계약 포지션 정보를 조회하는 함수"""
     try:
         response = session.get_positions(
@@ -50,7 +51,7 @@ def get_linear_positions(session, symbol="BTCUSD"):
             if isinstance(positions, list) and len(positions) > 0:
                 print("Linear Positions:")
                 for pos in positions:
-                    print(f"Symbol: {pos['symbol']}, Size: {pos['size']}, Side: {pos['side']}, Entry Price: {pos['entryPrice']}")
+                    print(f"Symbol: {pos['symbol']}, Size: {pos['size']}, Side: {pos['side']}, Entry Price: {pos.get('entryPrice', 'N/A')}")
             else:
                 print("No positions found")
         else:
