@@ -61,7 +61,52 @@ def get_linear_positions(session, symbol="BTCUSDT"):
     except Exception as e:
         print(f"An error occurred while fetching linear positions: {e}")
 
-def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="ISOLATED"):
+def place_order(session, symbol="BTCUSDT", qty=0.001, leverage=5, marginType="ISOLATED", side="Buy"):
+    """포지션을 진입하는 함수 (헷지모드 사용, 레버리지 5배, 마켓 가격으로)"""
+    try:
+        # 현재 포지션 조회
+        response = session.get_positions(
+            category="linear",
+            symbol=symbol,
+        )
+        if response['retCode'] == 0:
+            positions = response.get('result', {}).get('list', [])
+            for pos in positions:
+                if pos['side'].lower() == side.lower() and float(pos['size']) > 0:
+                    print(f"Existing {side} position found, not placing a new order.")
+                    return
+
+        # 레버리지 설정
+        session.set_leverage(
+            category="linear",
+            symbol=symbol,
+            buyLeverage=leverage,
+            sellLeverage=leverage,
+        )
+
+        # 마진 유형 설정
+        session.set_margin_type(
+            category="linear",
+            symbol=symbol,
+            marginType=marginType
+        )
+
+        response = session.place_order(
+            category="linear",
+            symbol=symbol,
+            side=side,
+            orderType="Market",  # 주문 유형을 대문자로 수정
+            qty=str(qty),
+            timeInForce="IOC",  # 즉시 체결 혹은 취소
+            positionIdx=1 if side.lower() == 'buy' else 2,  # hedge-mode Buy or Sell side
+        )
+        print(response)  # 주문 응답 출력
+        if response['retCode'] == 0:
+            print("Order placed successfully.")
+        else:
+            print(f"Error placing order: {response['retMsg']}")
+    except Exception as e:
+        print(f"An error occurred while placing the order: {e}")
     """Linear 계약 포지션을 진입하는 함수 (헷지모드 Buy side, 레버리지 5배, 마켓 가격으로)"""
     try:
         # 레버리지 설정
