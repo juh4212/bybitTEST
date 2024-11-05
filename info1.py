@@ -17,9 +17,17 @@ if not data:
     raise ValueError("데이터를 가져오지 못했습니다. API 응답을 확인하세요.")
 
 # 2. 데이터프레임으로 변환
-# 'open_time', 'open', 'high', 'low', 'close', 'volume'을 포함한 DataFrame 생성
+# 'start_time', 'open', 'high', 'low', 'close', 'volume'을 포함한 DataFrame 생성
 df = pd.DataFrame(data)
-df['start_at'] = pd.to_datetime(df['start_time'], unit='s') if 'start_time' in df.columns else pd.to_datetime(df['timestamp'], unit='s')
+
+# Verify if 'start_time' exists in the DataFrame and convert it to datetime
+if 'start_time' in df.columns:
+    df['start_at'] = pd.to_datetime(df['start_time'], unit='s')
+elif 'timestamp' in df.columns:
+    df['start_at'] = pd.to_datetime(df['timestamp'], unit='s')
+else:
+    raise KeyError("Time column ('start_time' or 'timestamp') not found in the data.")
+
 df.set_index('start_at', inplace=True)
 df = df[['open', 'high', 'low', 'close', 'volume']]
 df = df.astype(float)
