@@ -14,6 +14,22 @@ def get_api_credentials():
     
     return api_key, api_secret
 
+def get_historical_volatility(session, category="option", base_coin="BTC", period=30):
+    """옵션의 과거 변동성을 가져오는 함수"""
+    try:
+        response = session.get_historical_volatility(
+            category=category,
+            baseCoin=base_coin,
+            period=period
+        )
+        if response['retCode'] == 0:
+            print("Historical Volatility Data:")
+            print(response['result'])
+        else:
+            print(f"Error fetching historical volatility data: {response['retMsg']}")
+    except Exception as e:
+        print(f"An error occurred while fetching historical volatility: {e}")
+
 def get_historical_data(session, symbol="BTCUSDT", interval="1h", limit=200):
     """과거 데이터를 가져오는 함수"""
     try:
@@ -21,7 +37,8 @@ def get_historical_data(session, symbol="BTCUSDT", interval="1h", limit=200):
         if response['retCode'] == 0:
             df = pd.DataFrame(response['result'])
             # 열의 이름을 정확하게 할당하기 위해 응답 데이터의 키 사용
-            df.columns = ['start_at', 'open', 'high', 'low', 'close', 'volume', 'turnover']
+            expected_columns = ['start_at', 'open', 'high', 'low', 'close', 'volume', 'turnover']
+            df.columns = expected_columns[:df.shape[1]]
             df['close'] = df['close'].astype(float)
             df['open'] = df['open'].astype(float)
             df['high'] = df['high'].astype(float)
@@ -178,6 +195,9 @@ def main():
         print(f"Trade Decision: {decision}")
         if decision in ["Buy", "Sell"]:
             place_order(session, side=decision)
+    
+    print("\nFetching Historical Volatility...")
+    get_historical_volatility(session)
 
 if __name__ == "__main__":
     main()
