@@ -2,7 +2,7 @@ from pybit.unified_trading import HTTP
 import pandas as pd
 import ta
 
-# 1. 바이비트 퍼블릭 API에서 데이터 가져오기
+# 1. Bybit API에서 데이터 가져오기
 session = HTTP()
 response = session.get_kline(symbol="BTCUSDT", interval="5", limit=200)
 
@@ -16,25 +16,24 @@ if not data:
 
 # 2. 데이터프레임으로 변환
 df = pd.DataFrame(data)
-print("Data columns:", df.columns)  # 데이터의 열 확인
+print("데이터 열 확인:", df.columns)  # 데이터의 열 확인
 
-# 'start_time' 또는 'timestamp' 열을 기준으로 날짜 변환 및 인덱스로 설정
-time_column = None
-if 'start_time' in df.columns:
-    time_column = 'start_time'
-elif 'timestamp' in df.columns:
-    time_column = 'timestamp'
-elif 'time' in df.columns:
-    time_column = 'time'  # Trying another potential column name based on the error
+# 'list' 열의 구조를 확인하여 데이터가 있는지 확인
+if 'list' not in df.columns:
+    raise KeyError("'list' 열이 데이터에 없습니다. API 응답 구조를 확인하세요.")
 
-if time_column:
-    df['start_at'] = pd.to_datetime(df[time_column], unit='s')
-    df.set_index('start_at', inplace=True)
-else:
-    raise KeyError("Time column ('start_time', 'timestamp', or 'time') not found in the data.")
+# 'list' 열의 내용 확인
+print("list 열 내용:", df['list'].head())
 
-# Convert relevant columns to float and handle missing data
-df = df[['open', 'high', 'low', 'close', 'volume']].astype(float)
+# 'list' 열을 확장하여 개별 열로 변환
+data_expanded = pd.DataFrame(df['list'].tolist(), columns=['start_time', 'open', 'high', 'low', 'close', 'volume', 'other_column_1', 'other_column_2'])
+
+# 'start_time' 열을 datetime 형식으로 변환하고 인덱스로 설정
+data_expanded['start_at'] = pd.to_datetime(data_expanded['start_time'], unit='s')
+data_expanded.set_index('start_at', inplace=True)
+
+# 필요한 열만 선택하고 데이터 타입을 float으로 변환
+df = data_expanded[['open', 'high', 'low', 'close', 'volume']].astype(float)
 
 # 3. 기술적 지표 계산 (ta 라이브러리 사용)
 try:
