@@ -10,7 +10,7 @@ response = session.get_kline(
     limit=200
 )
 
-# Print response to inspect data structure
+# API 응답 구조를 출력하여 확인
 print("API response structure:", response)
 
 data = response.get('result', [])
@@ -20,11 +20,11 @@ if not data:
     raise ValueError("데이터를 가져오지 못했습니다. API 응답을 확인하세요.")
 
 # 2. 데이터프레임으로 변환
-# Print data to inspect available columns
+# 데이터의 열을 출력하여 확인
 df = pd.DataFrame(data)
 print("Data columns:", df.columns)
 
-# Verify if 'start_time' exists in the DataFrame and convert it to datetime
+# 'start_time' 또는 'timestamp'가 있는지 확인하고, 해당 열을 사용하여 시간을 변환
 if 'start_time' in df.columns:
     df['start_at'] = pd.to_datetime(df['start_time'], unit='s')
 elif 'timestamp' in df.columns:
@@ -37,7 +37,6 @@ df = df[['open', 'high', 'low', 'close', 'volume']]
 df = df.astype(float)
 
 # 3. 기술적 지표 계산하기 (ta 라이브러리 사용)
-# 예: RSI, EMA, Bollinger Bands 등
 try:
     df['rsi'] = ta.momentum.RSIIndicator(close=df['close'], window=14).rsi()
     df['ema_20'] = ta.trend.EMAIndicator(close=df['close'], window=20).ema_indicator()
