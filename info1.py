@@ -19,8 +19,8 @@ if not data:
 # 2. 데이터프레임으로 변환
 # 'open_time', 'open', 'high', 'low', 'close', 'volume'을 포함한 DataFrame 생성
 df = pd.DataFrame(data)
-df['start_at'] = pd.to_datetime(df['timestamp'], unit='s')
-df.set_index('timestamp', inplace=True)
+df['start_at'] = pd.to_datetime(df['start_time'], unit='s')
+df.set_index('start_at', inplace=True)
 df = df[['open', 'high', 'low', 'close', 'volume']]
 df = df.astype(float)
 
