@@ -3,7 +3,7 @@ import pandas as pd
 import ta
 
 # 1. 바이비트 퍼블릭 API에서 데이터 가져오기
-session = HTTP("https://api.bybit.com")
+session = HTTP()
 response = session.query_kline(
     symbol="BTCUSDT",  # BTC/USDT 페어
     interval="5",      # 5분 봉 데이터
