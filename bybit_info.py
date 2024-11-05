@@ -21,7 +21,7 @@ def get_historical_data(session, symbol="BTCUSDT", interval="1h", limit=200):
         if response['retCode'] == 0:
             df = pd.DataFrame(response['result'])
             # 열의 이름을 정확하게 할당하기 위해 응답 데이터의 키 사용
-            df.columns = ['start_at', 'open', 'high', 'low', 'close', 'volume', 'turnover', 'symbol'][:df.shape[1]]
+            df.columns = ['start_at', 'open', 'high', 'low', 'close', 'volume', 'turnover']
             df['close'] = df['close'].astype(float)
             df['open'] = df['open'].astype(float)
             df['high'] = df['high'].astype(float)
