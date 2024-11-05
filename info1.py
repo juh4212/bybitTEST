@@ -1,19 +1,31 @@
 from pybit.unified_trading import HTTP
 import pandas as pd
+from datetime import datetime, timedelta
 
 # Bybit API 세션 생성
 session = HTTP()
 
-# 1시간 간격의 7일치 데이터 가져오기 (168개 캔들)
-response = session.get_kline(symbol="BTCUSDT", interval="60", limit=168)
-data = response.get('result', [])
+# 시작 시간 설정 (7일 전 시간)
+end_time = int(datetime.now().timestamp() * 1000)  # 현재 시간을 밀리초로 변환
+seven_days_ago = end_time - 7 * 24 * 60 * 60 * 1000  # 7일 전
 
-# 데이터가 비어있을 경우 처리
-if not data:
-    raise ValueError("데이터를 가져오지 못했습니다. API 응답을 확인하세요.")
+# 데이터를 저장할 리스트
+all_data = []
 
-# 데이터프레임으로 변환 및 열 이름 확인
-df = pd.DataFrame(data)
+# 데이터를 반복적으로 가져와 168개 이상의 캔들을 확보
+while seven_days_ago < end_time:
+    response = session.get_kline(symbol="BTCUSDT", interval="60", limit=200, **{"from": seven_days_ago // 1000})
+    data = response.get('result', [])
+    
+    if not data:
+        print("더 이상 데이터가 없습니다.")
+        break
+
+    all_data.extend(data)
+    seven_days_ago = data[-1][0] * 1000 + 1  # 마지막 데이터의 시간을 기준으로 다음 요청 설정
+
+# 데이터프레임으로 변환
+df = pd.DataFrame(all_data)
 print("데이터프레임의 열 확인:", df.columns)  # 열 이름 출력
 
 # 'list' 열이 있는지 확인하여 확장
