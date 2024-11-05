@@ -22,8 +22,12 @@ while seven_days_ago < end_time:
         print("더 이상 데이터가 없습니다.")
         break
 
+    # 데이터를 리스트에 추가
     all_data.extend(data)
-    seven_days_ago = data[-1][0] * 1000 + 1  # 마지막 데이터의 시간을 기준으로 다음 요청 설정
+
+    # data가 비어 있지 않을 경우 마지막 데이터의 시간으로 seven_days_ago 업데이트
+    if data:
+        seven_days_ago = data[-1][0] * 1000 + 1  # 마지막 데이터의 시간을 기준으로 다음 요청 설정
 
 # 데이터프레임으로 변환
 df = pd.DataFrame(all_data)
