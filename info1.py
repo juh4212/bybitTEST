@@ -10,31 +10,24 @@ response = session.get_kline(
     limit=200
 )
 
-# API 응답 구조를 출력하여 확인
-print("API response structure:", response)
-
-data = response.get('result', [])
+# API 응답 구조 확인
+data = response.get('result', {}).get('list', [])
 
 # 데이터가 비어있을 경우 처리
 if not data:
     raise ValueError("데이터를 가져오지 못했습니다. API 응답을 확인하세요.")
 
 # 2. 데이터프레임으로 변환
-# 데이터의 열을 출력하여 확인
-df = pd.DataFrame(data)
-print("Data columns:", df.columns)
+# 열 이름을 설정하여 DataFrame 생성
+columns = ['start_time', 'open', 'high', 'low', 'close', 'volume']
+df = pd.DataFrame(data, columns=columns)
 
-# 'start_time' 또는 'timestamp'가 있는지 확인하고, 해당 열을 사용하여 시간을 변환
-if 'start_time' in df.columns:
-    df['start_at'] = pd.to_datetime(df['start_time'], unit='s')
-elif 'timestamp' in df.columns:
-    df['start_at'] = pd.to_datetime(df['timestamp'], unit='s')
-else:
-    raise KeyError("Time column ('start_time' or 'timestamp') not found in the data.")
-
+# 시간 열을 변환하고 인덱스로 설정
+df['start_at'] = pd.to_datetime(df['start_time'], unit='ms')
 df.set_index('start_at', inplace=True)
-df = df[['open', 'high', 'low', 'close', 'volume']]
-df = df.astype(float)
+
+# 필요한 열만 선택하고, 데이터를 float로 변환
+df = df[['open', 'high', 'low', 'close', 'volume']].astype(float)
 
 # 3. 기술적 지표 계산하기 (ta 라이브러리 사용)
 try:
