@@ -21,14 +21,12 @@ def get_historical_data(session, symbol="BTCUSDT", interval="1h", limit=200):
         if response['retCode'] == 0:
             df = pd.DataFrame(response['result'])
             # 열의 이름을 정확하게 할당하기 위해 응답 데이터의 키 사용
-            df = df.rename(columns={
-                0: 'start_at',
-                1: 'open',
-                2: 'high',
-                3: 'low',
-                4: 'close',
-                5: 'volume'
-            })
+            df.columns = ['start_at', 'open', 'high', 'low', 'close', 'volume', 'turnover', 'symbol'][:df.shape[1]]
+            df['close'] = df['close'].astype(float)
+            df['open'] = df['open'].astype(float)
+            df['high'] = df['high'].astype(float)
+            df['low'] = df['low'].astype(float)
+            df['volume'] = df['volume'].astype(float)
             return df
         else:
             print(f"Error fetching historical data: {response['retMsg']}")
@@ -43,10 +41,14 @@ def calculate_indicators(df):
     df['ema_20'] = ta.trend.ema_indicator(df['close'], window=20)
     df['ema_50'] = ta.trend.ema_indicator(df['close'], window=50)
     df['rsi'] = ta.momentum.rsi(df['close'], window=14)
-    df['macd'] = ta.trend.macd(df['close'])
-    df['macd_signal'] = ta.trend.macd_signal(df['close'])
-    df['upper_band'], df['middle_band'], df['lower_band'] = ta.volatility.BollingerBands(df['close'], window=20).bollinger_hband(), ta.volatility.BollingerBands(df['close'], window=20).bollinger_mavg(), ta.volatility.BollingerBands(df['close'], window=20).bollinger_lband()
-    df['volume_ma'] = ta.volume.volume_weighted_average_price(df, window=20)
+    macd = ta.trend.MACD(close=df['close'])
+    df['macd'] = macd.macd()
+    df['macd_signal'] = macd.macd_signal()
+    bb = ta.volatility.BollingerBands(close=df['close'], window=20)
+    df['upper_band'] = bb.bollinger_hband()
+    df['middle_band'] = bb.bollinger_mavg()
+    df['lower_band'] = bb.bollinger_lband()
+    df['volume_ma'] = df['volume'].rolling(window=20).mean()
     return df
 
 def make_trade_decision(df):
