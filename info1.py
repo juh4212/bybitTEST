@@ -17,6 +17,7 @@ while seven_days_ago < end_time:
     response = session.get_kline(symbol="BTCUSDT", interval="60", limit=200, **{"from": seven_days_ago // 1000})
     data = response.get('result', [])
     
+    # 데이터가 비어 있으면 반복 종료
     if not data:
         print("더 이상 데이터가 없습니다.")
         break
