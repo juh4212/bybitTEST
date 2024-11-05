@@ -1,39 +1,18 @@
-from pybit import HTTP
-import pandas as pd
-import ta
+# Dockerfile 작성
+# 이 파일을 사용하여 Docker 이미지를 빌드할 수 있습니다.
 
-# 1. 바이비트 퍼블릭 API에서 데이터 가져오기
-session = HTTP("https://api.bybit.com")
-response = session.query_kline(
-    symbol="BTCUSDT",  # BTC/USDT 페어
-    interval="5",      # 5분 봉 데이터
-    limit=200           # 최근 200개의 데이터 가져오기
-)
+# 베이스 이미지 설정 (Python 3.9 사용)
+FROM python:3.9
 
-data = response.get('result', [])
+# 작업 디렉터리 설정
+WORKDIR /app
 
-# 데이터가 비어있을 경우 처리
-if not data:
-    raise ValueError("데이터를 가져오지 못했습니다. API 응답을 확인하세요.")
+# 필요한 패키지 복사 및 설치
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 2. 데이터프레임으로 변환
-# 'open_time', 'open', 'high', 'low', 'close', 'volume'을 포함한 DataFrame 생성
-df = pd.DataFrame(data)
-df['open_time'] = pd.to_datetime(df['open_time'], unit='s')
-df.set_index('open_time', inplace=True)
-df = df[['open', 'high', 'low', 'close', 'volume']]
-df = df.astype(float)
+# 코드 복사
+COPY . .
 
-# 3. 기술적 지표 계산하기 (ta 라이브러리 사용)
-# 예: RSI, EMA, Bollinger Bands 등
-try:
-    df['rsi'] = ta.momentum.RSIIndicator(close=df['close'], window=14).rsi()
-    df['ema_20'] = ta.trend.EMAIndicator(close=df['close'], window=20).ema_indicator()
-    bb = ta.volatility.BollingerBands(close=df['close'], window=20)
-    df['bb_upper'] = bb.bollinger_hband()
-    df['bb_lower'] = bb.bollinger_lband()
-except Exception as e:
-    raise RuntimeError(f"기술적 지표 계산 중 오류가 발생했습니다: {e}")
-
-# 4. 결과 출력
-print(df.tail())
+# 애플리케이션 실행 명령어
+CMD ["python", "bybit_ta_integration.py"]
