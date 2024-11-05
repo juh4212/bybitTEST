@@ -71,7 +71,7 @@ def place_order(session, symbol="BTCUSDT", qty="0.001", leverage=5):
         if current_positions['retCode'] == 0 and len(current_positions['result']['list']) > 0:
             current_leverage = current_positions['result']['list'][0].get('leverage')
         
-        if current_leverage != leverage:
+        if current_leverage is None or float(current_leverage) != leverage:
             response_leverage = session.set_leverage(
                 category="linear",
                 symbol=symbol,
