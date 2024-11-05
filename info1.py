@@ -10,6 +10,9 @@ response = session.get_kline(
     limit=200
 )
 
+# Print response to inspect data structure
+print("API response structure:", response)
+
 data = response.get('result', [])
 
 # 데이터가 비어있을 경우 처리
@@ -17,8 +20,9 @@ if not data:
     raise ValueError("데이터를 가져오지 못했습니다. API 응답을 확인하세요.")
 
 # 2. 데이터프레임으로 변환
-# 'start_time', 'open', 'high', 'low', 'close', 'volume'을 포함한 DataFrame 생성
+# Print data to inspect available columns
 df = pd.DataFrame(data)
+print("Data columns:", df.columns)
 
 # Verify if 'start_time' exists in the DataFrame and convert it to datetime
 if 'start_time' in df.columns:
