@@ -14,7 +14,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 애플리케이션 소스 복사
-COPY bybit_info.py .
+COPY bybit_info1.py .
 
 # 컨테이너가 시작될 때 실행될 명령어 설정
-CMD ["python", "bybit_info.py"]
+CMD ["python", "info1.py"]
