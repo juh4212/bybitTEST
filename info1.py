@@ -19,14 +19,21 @@ df = pd.DataFrame(data)
 print("Data columns:", df.columns)  # 데이터의 열 확인
 
 # 'start_time' 또는 'timestamp' 열을 기준으로 날짜 변환 및 인덱스로 설정
+time_column = None
 if 'start_time' in df.columns:
-    df['start_at'] = pd.to_datetime(df['start_time'], unit='s')
+    time_column = 'start_time'
 elif 'timestamp' in df.columns:
-    df['start_at'] = pd.to_datetime(df['timestamp'], unit='s')
-else:
-    raise KeyError("Time column ('start_time' or 'timestamp') not found in the data.")
+    time_column = 'timestamp'
+elif 'time' in df.columns:
+    time_column = 'time'  # Trying another potential column name based on the error
 
-df.set_index('start_at', inplace=True)
+if time_column:
+    df['start_at'] = pd.to_datetime(df[time_column], unit='s')
+    df.set_index('start_at', inplace=True)
+else:
+    raise KeyError("Time column ('start_time', 'timestamp', or 'time') not found in the data.")
+
+# Convert relevant columns to float and handle missing data
 df = df[['open', 'high', 'low', 'close', 'volume']].astype(float)
 
 # 3. 기술적 지표 계산 (ta 라이브러리 사용)
