@@ -1,20 +1,39 @@
-# 베이스 이미지로 Python 3.10 슬림 버전 사용
-FROM python:3.10-slim
+from pybit import HTTP
+import pandas as pd
+import ta
 
-# 작업 디렉토리 설정
-WORKDIR /app
+# 1. 바이비트 퍼블릭 API에서 데이터 가져오기
+session = HTTP("https://api.bybit.com")
+response = session.query_kline(
+    symbol="BTCUSDT",  # BTC/USDT 페어
+    interval="5",      # 5분 봉 데이터
+    limit=200           # 최근 200개의 데이터 가져오기
+)
 
-# 시스템 패키지 업데이트 및 필요한 패키지 설치
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+data = response.get('result', [])
 
-# 종속성 파일을 복사하고 설치
-COPY requirements.txt .
+# 데이터가 비어있을 경우 처리
+if not data:
+    raise ValueError("데이터를 가져오지 못했습니다. API 응답을 확인하세요.")
 
-RUN pip install --no-cache-dir -r requirements.txt
+# 2. 데이터프레임으로 변환
+# 'open_time', 'open', 'high', 'low', 'close', 'volume'을 포함한 DataFrame 생성
+df = pd.DataFrame(data)
+df['open_time'] = pd.to_datetime(df['open_time'], unit='s')
+df.set_index('open_time', inplace=True)
+df = df[['open', 'high', 'low', 'close', 'volume']]
+df = df.astype(float)
 
-# 애플리케이션 소스 복사
-COPY bybit_info1.py .
+# 3. 기술적 지표 계산하기 (ta 라이브러리 사용)
+# 예: RSI, EMA, Bollinger Bands 등
+try:
+    df['rsi'] = ta.momentum.RSIIndicator(close=df['close'], window=14).rsi()
+    df['ema_20'] = ta.trend.EMAIndicator(close=df['close'], window=20).ema_indicator()
+    bb = ta.volatility.BollingerBands(close=df['close'], window=20)
+    df['bb_upper'] = bb.bollinger_hband()
+    df['bb_lower'] = bb.bollinger_lband()
+except Exception as e:
+    raise RuntimeError(f"기술적 지표 계산 중 오류가 발생했습니다: {e}")
 
-# 컨테이너가 시작될 때 실행될 명령어 설정
-CMD ["python", "info1.py"]
+# 4. 결과 출력
+print(df.tail())
