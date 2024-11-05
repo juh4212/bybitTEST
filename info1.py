@@ -29,8 +29,8 @@ print("list 열 내용:", df['list'].head())
 columns = ['start_time', 'open', 'high', 'low', 'close', 'volume', 'turnover']
 data_expanded = pd.DataFrame(df['list'].tolist(), columns=columns)
 
-# 'start_time' 열을 datetime 형식으로 변환하고 인덱스로 설정
-data_expanded['start_at'] = pd.to_datetime(data_expanded['start_time'], unit='s')
+# 'start_time' 열을 datetime 형식으로 변환하고 인덱스로 설정 (밀리초 단위로 변환)
+data_expanded['start_at'] = pd.to_datetime(data_expanded['start_time'], unit='ms')
 data_expanded.set_index('start_at', inplace=True)
 
 # 필요한 열만 선택하고 데이터 타입을 float으로 변환
