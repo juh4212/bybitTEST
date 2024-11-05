@@ -5,14 +5,14 @@ import time
 # Bybit API 세션 생성
 session = HTTP()
 
-# 현재 시간의 Unix timestamp (초 단위)
-current_time = int(time.time())
+# 현재 시간의 Unix timestamp (밀리초 단위)
+current_time_ms = int(time.time() * 1000)
 
-# 7일 전의 Unix timestamp 계산 (168시간 * 3600초)
-start_time = current_time - 168 * 3600
+# 7일 전의 Unix timestamp 계산 (168시간 * 3600초 * 1000밀리초)
+start_time_ms = current_time_ms - (168 * 3600 * 1000)
 
 # 1시간 간격의 7일치 데이터 가져오기 (168개 캔들)
-response = session.get_kline(symbol="BTCUSDT", interval="60", limit=168, from_time=start_time)
+response = session.get_kline(symbol="BTCUSDT", interval="60", limit=168, from_time=start_time_ms)
 data = response.get('result', [])
 
 # 데이터가 비어있을 경우 처리
