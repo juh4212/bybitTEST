@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import ta
 from pybit.unified_trading import HTTP
 
 def get_api_credentials():
@@ -21,8 +22,8 @@ def get_historical_data(session, symbol="BTCUSDT", interval="1h", limit=200):
             df = pd.DataFrame(response['result'])
             # 실제 데이터프레임의 열 수에 따라 열 이름을 조정합니다.
             expected_columns = df.shape[1]
-            if expected_columns >= 7:
-                df.columns = ['start_at', 'open', 'high', 'low', 'close', 'volume', 'turnover'][:expected_columns]
+            if expected_columns >= 6:
+                df.columns = ['start_at', 'open', 'high', 'low', 'close', 'volume'][:expected_columns]
             else:
                 print("Unexpected number of columns in historical data")
                 return None
@@ -36,55 +37,22 @@ def get_historical_data(session, symbol="BTCUSDT", interval="1h", limit=200):
 
 def calculate_indicators(df):
     """기술적 지표를 계산하는 함수"""
-    df['ema_20'] = df['close'].ewm(span=20, adjust=False).mean()
-    df['ema_50'] = df['close'].ewm(span=50, adjust=False).mean()
-    df['rsi'] = calculate_rsi(df['close'])
-    df['macd'], df['signal_line'] = calculate_macd(df['close'])
-    df['upper_band'], df['middle_band'], df['lower_band'] = calculate_bollinger_bands(df['close'])
-    df['fibonacci_retracement'] = calculate_fibonacci_retracement(df['close'])
-    df['volume_ma'] = df['volume'].rolling(window=20).mean()
+    # Using TA-Lib for more indicators
+    df['ema_20'] = ta.trend.ema_indicator(df['close'], window=20)
+    df['ema_50'] = ta.trend.ema_indicator(df['close'], window=50)
+    df['rsi'] = ta.momentum.rsi(df['close'], window=14)
+    df['macd'] = ta.trend.macd(df['close'])
+    df['macd_signal'] = ta.trend.macd_signal(df['close'])
+    df['upper_band'], df['middle_band'], df['lower_band'] = ta.volatility.BollingerBands(df['close'], window=20).bollinger_hband(), ta.volatility.BollingerBands(df['close'], window=20).bollinger_mavg(), ta.volatility.BollingerBands(df['close'], window=20).bollinger_lband()
+    df['volume_ma'] = ta.volume.volume_weighted_average_price(df, window=20)
     return df
-
-def calculate_rsi(series, period=14):
-    """RSI를 계산하는 함수"""
-    delta = series.diff(1)
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-    avg_gain = gain.rolling(window=period).mean()
-    avg_loss = loss.rolling(window=period).mean()
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
-
-def calculate_macd(series, short_period=12, long_period=26, signal_period=9):
-    """MACD를 계산하는 함수"""
-    short_ema = series.ewm(span=short_period, adjust=False).mean()
-    long_ema = series.ewm(span=long_period, adjust=False).mean()
-    macd = short_ema - long_ema
-    signal_line = macd.ewm(span=signal_period, adjust=False).mean()
-    return macd, signal_line
-
-def calculate_bollinger_bands(series, period=20, num_std_dev=2):
-    """볼린저 밴드를 계산하는 함수"""
-    middle_band = series.rolling(window=period).mean()
-    std_dev = series.rolling(window=period).std()
-    upper_band = middle_band + (std_dev * num_std_dev)
-    lower_band = middle_band - (std_dev * num_std_dev)
-    return upper_band, middle_band, lower_band
-
-def calculate_fibonacci_retracement(series):
-    """피보나치 되돌림 계산 (단순 예시)"""
-    max_price = series.max()
-    min_price = series.min()
-    retracement_levels = [0.236, 0.382, 0.5, 0.618, 0.786]
-    return [(max_price - min_price) * level + min_price for level in retracement_levels]
 
 def make_trade_decision(df):
     """AI 기반으로 매매 결정을 내리는 함수 (기본적인 논리만 사용)"""
     latest = df.iloc[-1]
-    if latest['close'] > latest['ema_20'] and latest['macd'] > latest['signal_line'] and latest['rsi'] < 70:
+    if latest['close'] > latest['ema_20'] and latest['macd'] > latest['macd_signal'] and latest['rsi'] < 70:
         return "Buy"
-    elif latest['close'] < latest['ema_20'] and latest['macd'] < latest['signal_line'] and latest['rsi'] > 30:
+    elif latest['close'] < latest['ema_20'] and latest['macd'] < latest['macd_signal'] and latest['rsi'] > 30:
         return "Sell"
     return "Hold"
 
@@ -178,23 +146,6 @@ def place_order(session, symbol="BTCUSDT", qty="0.001", leverage=5, side="Buy"):
     except Exception as e:
         print(f"An error occurred while placing the order: {e}")
 
-def get_account_ratio(session, symbol="BTCUSDT", period='1h'):
-    """롱숏 비율을 가져오는 함수"""
-    try:
-        response = session.get_account_ratio(
-            category="linear",
-            symbol=symbol,
-            period=period
-        )
-        if response['retCode'] == 0:
-            print("Account Ratio:")
-            for item in response['result']['list']:
-                print(f"Timestamp: {item['timestamp']}, Long Ratio: {item['longAccount']}, Short Ratio: {item['shortAccount']}")
-        else:
-            print(f"Error fetching account ratio: {response['retMsg']}")
-    except Exception as e:
-        print(f"An error occurred while fetching account ratio: {e}")
-
 def main():
     try:
         api_key, api_secret = get_api_credentials()
@@ -214,9 +165,6 @@ def main():
     
     print("\nFetching Linear Positions...")
     get_linear_positions(session)
-    
-    print("\nFetching Account Ratio...")
-    get_account_ratio(session)
     
     print("\nFetching Historical Data...")
     df = get_historical_data(session)
