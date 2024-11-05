@@ -4,10 +4,11 @@ import ta
 
 # 1. 바이비트 퍼블릭 API에서 데이터 가져오기
 session = HTTP()
-response = session.query_kline(
-    symbol="BTCUSDT",  # BTC/USDT 페어
-    interval="5",      # 5분 봉 데이터
-    limit=200           # 최근 200개의 데이터 가져오기
+response = session.market_history.kline(
+    category="linear",
+    symbol="BTCUSDT",
+    interval="5",
+    limit=200
 )
 
 data = response.get('result', [])
