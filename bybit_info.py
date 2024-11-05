@@ -210,12 +210,10 @@ def main():
     print("\nFetching Linear Positions...")
     get_linear_positions(session)
     
-    print("
-Fetching Account Ratio...")
+    print("\nFetching Account Ratio...")
     get_account_ratio(session)
     
-    print("
-Fetching Historical Data...")
+    print("\nFetching Historical Data...")
     df = get_historical_data(session)
     if df is not None:
         df = calculate_indicators(df)
