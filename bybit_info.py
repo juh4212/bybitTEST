@@ -18,7 +18,9 @@ def get_historical_data(session, symbol="BTCUSDT", interval="1h", limit=200):
     try:
         response = session.get_kline(category="linear", symbol=symbol, interval=interval, limit=limit)
         if response['retCode'] == 0:
-            return pd.DataFrame(response['result'])
+            df = pd.DataFrame(response['result'])
+            df.columns = ['start_at', 'open', 'high', 'low', 'close', 'volume', 'turnover']
+            return df
         else:
             print(f"Error fetching historical data: {response['retMsg']}")
             return None
