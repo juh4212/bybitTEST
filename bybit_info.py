@@ -19,7 +19,15 @@ def get_historical_data(session, symbol="BTCUSDT", interval="1h", limit=200):
         response = session.get_kline(category="linear", symbol=symbol, interval=interval, limit=limit)
         if response['retCode'] == 0:
             df = pd.DataFrame(response['result'])
-            df.columns = ['start_at', 'open', 'high', 'low', 'close', 'volume', 'turnover', 'symbol']
+            # 실제 데이터프레임의 열 수에 따라 열 이름을 조정합니다.
+            expected_columns = df.shape[1]
+            if expected_columns == 8:
+                df.columns = ['start_at', 'open', 'high', 'low', 'close', 'volume', 'turnover', 'symbol']
+            elif expected_columns == 7:
+                df.columns = ['start_at', 'open', 'high', 'low', 'close', 'volume', 'turnover']
+            else:
+                print("Unexpected number of columns in historical data")
+                return None
             return df
         else:
             print(f"Error fetching historical data: {response['retMsg']}")
@@ -37,7 +45,6 @@ def calculate_indicators(df):
     df['upper_band'], df['middle_band'], df['lower_band'] = calculate_bollinger_bands(df['close'])
     df['fibonacci_retracement'] = calculate_fibonacci_retracement(df['close'])
     df['volume_ma'] = df['volume'].rolling(window=20).mean()
-    # 일목균형표 계산 생략 (복잡도 증가 방지, 필요시 추가 가능)
     return df
 
 def calculate_rsi(series, period=14):
@@ -173,23 +180,6 @@ def place_order(session, symbol="BTCUSDT", qty="0.001", leverage=5, side="Buy"):
     except Exception as e:
         print(f"An error occurred while placing the order: {e}")
 
-def get_account_ratio(session, symbol="BTCUSDT", period='1h'):
-    """롱숏 비율을 가져오는 함수"""
-    try:
-        response = session.get_account_ratio(
-            category="linear",
-            symbol=symbol,
-            period=period
-        )
-        if response['retCode'] == 0:
-            print("Account Ratio:")
-            for item in response['result']['list']:
-                print(f"Timestamp: {item['timestamp']}, Long Ratio: {item['longAccount']}, Short Ratio: {item['shortAccount']}")
-        else:
-            print(f"Error fetching account ratio: {response['retMsg']}")
-    except Exception as e:
-        print(f"An error occurred while fetching account ratio: {e}")
-
 def main():
     try:
         api_key, api_secret = get_api_credentials()
@@ -210,8 +200,9 @@ def main():
     print("\nFetching Linear Positions...")
     get_linear_positions(session)
     
-    print("\nFetching Account Ratio...")
-    get_account_ratio(session)
+    # get_account_ratio 제거
+    # print("\nFetching Account Ratio...")
+    # get_account_ratio(session)
     
     print("\nFetching Historical Data...")
     df = get_historical_data(session)
