@@ -22,11 +22,23 @@ print("데이터 열 확인:", df.columns)  # 데이터의 열 확인
 if 'list' not in df.columns:
     raise KeyError("'list' 열이 데이터에 없습니다. API 응답 구조를 확인하세요.")
 
-# 'list' 열의 내용 확인
+# 'list' 열의 내용 확인 (첫 5개 행)
 print("list 열 내용:", df['list'].head())
 
-# 'list' 열을 확장하여 개별 열로 변환
-data_expanded = pd.DataFrame(df['list'].tolist(), columns=['start_time', 'open', 'high', 'low', 'close', 'volume', 'other_column_1', 'other_column_2'])
+# 'list' 열에서 데이터의 길이를 확인
+sample_length = len(df['list'].iloc[0])
+print("list 열의 데이터 길이:", sample_length)
+
+# 데이터 길이에 따라 열 이름 지정 (예: 7개의 열이 있다면)
+if sample_length == 7:
+    columns = ['start_time', 'open', 'high', 'low', 'close', 'volume', 'turnover']
+elif sample_length == 8:
+    columns = ['start_time', 'open', 'high', 'low', 'close', 'volume', 'other_column_1', 'other_column_2']
+else:
+    raise ValueError(f"예상치 못한 데이터 길이: {sample_length}")
+
+# 'list' 열을 확장하여 데이터 프레임으로 변환
+data_expanded = pd.DataFrame(df['list'].tolist(), columns=columns)
 
 # 'start_time' 열을 datetime 형식으로 변환하고 인덱스로 설정
 data_expanded['start_at'] = pd.to_datetime(data_expanded['start_time'], unit='s')
