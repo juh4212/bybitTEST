@@ -20,13 +20,15 @@ def get_historical_data(session, symbol="BTCUSDT", interval="1h", limit=200):
         response = session.get_kline(category="linear", symbol=symbol, interval=interval, limit=limit)
         if response['retCode'] == 0:
             df = pd.DataFrame(response['result'])
-            # 실제 데이터프레임의 열 수에 따라 열 이름을 조정합니다.
-            expected_columns = df.shape[1]
-            if expected_columns >= 6:
-                df.columns = ['start_at', 'open', 'high', 'low', 'close', 'volume'][:expected_columns]
-            else:
-                print("Unexpected number of columns in historical data")
-                return None
+            # 열의 이름을 정확하게 할당하기 위해 응답 데이터의 키 사용
+            df = df.rename(columns={
+                0: 'start_at',
+                1: 'open',
+                2: 'high',
+                3: 'low',
+                4: 'close',
+                5: 'volume'
+            })
             return df
         else:
             print(f"Error fetching historical data: {response['retMsg']}")
