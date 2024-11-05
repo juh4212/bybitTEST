@@ -42,12 +42,5 @@ try:
 except Exception as e:
     raise RuntimeError(f"기술적 지표 계산 중 오류가 발생했습니다: {e}")
 
-# 4. 결과 출력 (마지막 5개 값)
-for index, row in df.tail(5).iterrows():
-    print(f"시간: {index}")
-    print(f"RSI: {row['rsi']:.2f}")
-    print(f"EMA(20): {row['ema_20']:.2f}")
-    print(f"Bollinger Upper: {row['bb_upper']:.2f}")
-    print(f"Bollinger Lower: {row['bb_lower']:.2f}")
-    print(f"종가: {row['close']:.2f}")
-    print("-" * 30)
+# 4. 결과 출력
+print(df.tail())
