@@ -16,38 +16,68 @@ client = OpenAI(api_key=api_key)
 # Bybit API 세션 생성
 session = HTTP()
 
-# 현재 시간의 Unix timestamp (초 단위)
-current_time = int(time.time())
+# 현재 시간의 Unix timestamp (밀리초 단위)
+current_time_ms = int(time.time() * 1000)
 
-# 7일 전의 Unix timestamp 계산 (7일 * 24시간 * 3600초)
-start_time = current_time - (7 * 24 * 3600)
+# 7일 전의 Unix timestamp 계산 (168시간 * 3600초 * 1000밀리초)
+start_time_ms = current_time_ms - (168 * 3600 * 1000)
 
 # 1시간 간격의 7일치 데이터 가져오기 (168개 캔들)
-response = session.get_kline(
-    symbol="BTCUSDT",
-    interval="60",
-    limit=200,  # 여유롭게 데이터를 가져옵니다.
-    from_time=start_time
-)
+response = session.get_kline(symbol="BTCUSDT", interval="60", limit=168, from_time=start_time_ms)
 data = response.get('result', [])
 
 # 데이터가 비어있을 경우 처리
 if not data:
     raise ValueError("Data retrieval failed. Please check API response.")
 
-# 데이터프레임으로 변환
+# 데이터프레임으로 변환 및 열 이름 확인
 df = pd.DataFrame(data)
+print("Columns in dataframe:", df.columns)  # 열 이름 출력
 
-# 필요한 열 선택 및 데이터 타입 변환
-df = df[['open_time', 'open', 'high', 'low', 'close', 'volume']]
-df['open_time'] = pd.to_datetime(df['open_time'], unit='s')
-df.set_index('open_time', inplace=True)
-df = df.astype(float)
+# 'list' 열이 있는지 확인하여 확장
+if 'list' not in df.columns:
+    raise KeyError("'list' column is missing in the data. Check API response structure.")
+
+# 'list' 열의 내용을 개별 열로 확장
+columns = ['start_time', 'open', 'high', 'low', 'close', 'volume', 'turnover']
+df_hourly = pd.DataFrame(df['list'].tolist(), columns=columns)
+
+# 'start_time'을 datetime 형식으로 변환하고 인덱스로 설정 (밀리초 단위로 변환)
+df_hourly['start_at'] = pd.to_datetime(df_hourly['start_time'], unit='ms')
+df_hourly.set_index('start_at', inplace=True)
+
+# 필요한 열만 선택하고 데이터 타입을 float으로 변환
+df_hourly = df_hourly[['open', 'high', 'low', 'close', 'volume']].astype(float)
 
 # NaN 값 제거
-df = df.dropna()
+df_hourly = df_hourly.dropna()
 
-# 이동 평균 계산
+# 보조지표 추가 (ta 라이브러리 사용)
+df_hourly['SMA_20'] = ta.trend.sma_indicator(df_hourly['close'], window=20)
+df_hourly['EMA_50'] = ta.trend.ema_indicator(df_hourly['close'], window=50)
+df_hourly['RSI_14'] = ta.momentum.rsi(df_hourly['close'], window=14)
+
+# MACD (이동 평균 수렴·확산)
+df_hourly['MACD'] = ta.trend.macd(df_hourly['close'])
+df_hourly['MACD_signal'] = ta.trend.macd_signal(df_hourly['close'])
+df_hourly['MACD_hist'] = ta.trend.macd_diff(df_hourly['close'])
+
+# Ichimoku Cloud (이치모쿠 구름대)
+df_hourly['ichimoku_conversion'] = ta.trend.ichimoku_conversion_line(df_hourly['high'], df_hourly['low'])
+df_hourly['ichimoku_base'] = ta.trend.ichimoku_base_line(df_hourly['high'], df_hourly['low'])
+df_hourly['ichimoku_span_a'] = ta.trend.ichimoku_a(df_hourly['high'], df_hourly['low'])
+df_hourly['ichimoku_span_b'] = ta.trend.ichimoku_b(df_hourly['high'], df_hourly['low'])
+
+# 피보나치 되돌림 레벨 계산 (최근 고점과 저점을 기준으로 함)
+recent_high = df_hourly['high'].max()
+recent_low = df_hourly['low'].min()
+df_hourly['fib_0.236'] = recent_high - 0.236 * (recent_high - recent_low)
+df_hourly['fib_0.382'] = recent_high - 0.382 * (recent_high - recent_low)
+df_hourly['fib_0.5'] = (recent_high + recent_low) / 2
+df_hourly['fib_0.618'] = recent_high - 0.618 * (recent_high - recent_low)
+df_hourly['fib_0.786'] = recent_high - 0.786 * (recent_high - recent_low)
+
+#Helacator ai theta 
 ma1_length = 50
 ma2_length = 200
 df['ma1'] = df['close'].rolling(window=ma1_length).mean()
@@ -83,98 +113,75 @@ def three_black_crows(data):
 df['buy_signal'] = False
 df['sell_signal'] = False
 
-# 쿨다운 기간 설정
-use_cooldown = True
-cooldown_period = 150  # 캔들 수
 
-# 최근 신호 시점 추적 변수
-last_buy_index = None
-last_sell_index = None
+# NaN 값 제거 (보조지표 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
+df_hourly = df_hourly.dropna()
 
-# 마지막 매매 상태 추적 변수
-last_was_buy = False
-last_was_sell = False
-
-# 데이터 순회하며 신호 생성
-for idx in range(2, len(df)):
-    cooldown_buy_condition = True
-    cooldown_sell_condition = True
-
-    if use_cooldown:
-        if last_buy_index is not None:
-            cooldown_buy_condition = (idx - last_buy_index) > cooldown_period
-        if last_sell_index is not None:
-            cooldown_sell_condition = (idx - last_sell_index) > cooldown_period
-
-    # 매수 신호 조건
-    buy_cond = (
-        three_white_soldiers(df.iloc[idx-2:idx+1])[-1] and
-        not last_was_buy and
-        df['close'].iloc[idx] > df['ma1'].iloc[idx] and
-        df['close'].iloc[idx] > df['ma2'].iloc[idx] and
-        cooldown_buy_condition
-    )
-
-    # 매도 신호 조건
-    sell_cond = (
-        three_black_crows(df.iloc[idx-2:idx+1])[-1] and
-        not last_was_sell and
-        df['close'].iloc[idx] < df['ma1'].iloc[idx] and
-        df['close'].iloc[idx] < df['ma2'].iloc[idx] and
-        cooldown_sell_condition
-    )
-
-    if buy_cond:
-        df['buy_signal'].iloc[idx] = True
-        last_was_buy = True
-        last_was_sell = False
-        last_buy_index = idx
-    elif sell_cond:
-        df['sell_signal'].iloc[idx] = True
-        last_was_sell = True
-        last_was_buy = False
-        last_sell_index = idx
+# 전체 데이터프레임 로그 출력
+print("DataFrame with indicators:")
+print(df_hourly)
 
 # 가장 최근 데이터 추출
-latest_data = df.iloc[-1]
+latest_data = df_hourly.iloc[-1].to_dict()
 
-# 현재 포지션 결정
-if latest_data['buy_signal']:
-    decision = "open long"
-    percentage = 100  # 예시로 100%로 설정
-    reason = "Three White Soldiers 패턴과 이동 평균 상향 돌파로 매수 신호 발생"
-elif latest_data['sell_signal']:
-    decision = "open short"
-    percentage = 100
-    reason = "Three Black Crows 패턴과 이동 평균 하향 돌파로 매도 신호 발생"
-else:
-    decision = "hold"
-    percentage = 0
-    reason = "특별한 매매 신호가 없어 관망 유지"
-
-# ChatGPT 요청 메시지 작성
+# ChatGPT 요청 메시지 작성 (이유를 한국어로 제공하도록 요청)
 message = f"""
 현재 시장 지표는 다음과 같습니다:
 - 종가: {latest_data['close']}
-- MA1 ({ma1_length}): {latest_data['ma1']}
-- MA2 ({ma2_length}): {latest_data['ma2']}
-- 최근 매수 신호: {latest_data['buy_signal']}
-- 최근 매도 신호: {latest_data['sell_signal']}
+- SMA_20: {latest_data['SMA_20']}
+- EMA_50: {latest_data['EMA_50']}
+- RSI_14: {latest_data['RSI_14']}
+- MACD: {latest_data['MACD']}
+- MACD Signal: {latest_data['MACD_signal']}
+- Ichimoku Conversion Line: {latest_data['ichimoku_conversion']}
+- Ichimoku Base Line: {latest_data['ichimoku_base']}
+- Fibonacci 0.236: {latest_data['fib_0.236']}
+- Fibonacci 0.382: {latest_data['fib_0.382']}
+- Fibonacci 0.5: {latest_data['fib_0.5']}
+- Fibonacci 0.618: {latest_data['fib_0.618']}
+- Fibonacci 0.786: {latest_data['fib_0.786']}
 
 이 지표를 바탕으로 다음 형식으로 매매 포지션을 결정해 주세요:
 {{
-  "decision": "{decision}",
-  "percentage": {percentage},
-  "reason": "{reason}"
+  "decision": "open long" (매수), "open short" (매도), "close long" (롱 청산), "close short" (숏 청산) 또는 "hold" (관망),
+  "percentage": 추천 퍼센트 (정수로 표시),
+  "reason": 기술적 지표에 기반한 간결한 한국어 설명
+}}
+
+예시 응답:
+1. {{
+  "decision": "open long",
+  "percentage": 50,
+  "reason": "RSI와 EMA가 상승 추세를 나타내고 있어 매수 포지션 진입이 유리할 것으로 보입니다."
+}}
+2. {{
+  "decision": "open short",
+  "percentage": 30,
+  "reason": "RSI가 과매수 상태에 가까워져 하락 가능성이 커졌으므로 매도 포지션을 추천합니다."
+}}
+3. {{
+  "decision": "hold",
+  "percentage": 0,
+  "reason": "포지션 진입이 애매한 상황이며, 추세가 불확실하여 관망이 적절해 보입니다."
+}}
+4. {{
+  "decision": "close long",
+  "percentage": -30,
+  "reason": "롱 포지션을 보유 중인 상황에서 일부 이익 실현을 하거나 리스크 관리를 위해 포지션을 줄이는 것이 좋습니다."
+}}
+5. {{
+  "decision": "close short",
+  "percentage": -30,
+  "reason": "숏 포지션을 보유 중인 상황에서 일부 이익 실현을 하거나 시장 변동성에 대비해 리스크를 줄이는 것이 좋습니다."
 }}
 """
 
-# ChatGPT API 호출 (`gpt-4` 모델 사용)
+# ChatGPT API 호출 (`gpt-4o` 모델 사용)
 response = client.chat.completions.create(
     messages=[
         {"role": "user", "content": message}
     ],
-    model="gpt-4",
+    model="gpt-4o",
 )
 
 # ChatGPT의 응답 추출
