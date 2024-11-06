@@ -70,75 +70,7 @@ df_hourly['ichimoku_span_b'] = ta.trend.ichimoku_b(df_hourly['high'], df_hourly[
 
 # 피보나치 되돌림 레벨 계산 (최근 고점과 저점을 기준으로 함)
 recent_high = df_hourly['high'].max()
-recent_low = df_hourly['low'].min()
-df_hourly['fib_0.236'] = recent_high - 0.236 * (recent_high - recent_low)
-df_hourly['fib_0.382'] = recent_high - 0.382 * (recent_high - recent_low)
-df_hourly['fib_0.5'] = (recent_high + recent_low) / 2
-df_hourly['fib_0.618'] = recent_high - 0.618 * (recent_high - recent_low)
-df_hourly['fib_0.786'] = recent_high - 0.786 * (recent_high - recent_low)
-
-#Helacator ai theta 
-ma1_length = 50
-ma2_length = 200
-df['ma1'] = df['close'].rolling(window=ma1_length).mean()
-df['ma2'] = df['close'].rolling(window=ma2_length).mean()
-
-# Three White Soldiers 패턴 인식 함수
-def three_white_soldiers(data):
-    condition = (
-        (data['close'] > data['open']) &
-        (data['close'].shift(1) > data['open'].shift(1)) &
-        (data['close'].shift(2) > data['open'].shift(2)) &
-        (data['open'].shift(1) <= data['close'].shift(2)) &
-        (data['close'].shift(1) > data['close'].shift(2)) &
-        (data['open'] <= data['close'].shift(1)) &
-        (data['close'] > data['close'].shift(1))
-    )
-    return condition
-
-# Three Black Crows 패턴 인식 함수
-def three_black_crows(data):
-    condition = (
-        (data['close'] < data['open']) &
-        (data['close'].shift(1) < data['open'].shift(1)) &
-        (data['close'].shift(2) < data['open'].shift(2)) &
-        (data['open'].shift(1) >= data['close'].shift(2)) &
-        (data['close'].shift(1) < data['close'].shift(2)) &
-        (data['open'] >= data['close'].shift(1)) &
-        (data['close'] < data['close'].shift(1))
-    )
-    return condition
-
-# NaN 값 제거 (보조지표 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
-df_hourly = df_hourly.dropna()
-
-# 전체 데이터프레임 로그 출력
-print("DataFrame with indicators:")
-print(df_hourly)
-
-# 가장 최근 데이터 추출
-latest_data = df_hourly.iloc[-1].to_dict()
-
-# ChatGPT 요청 메시지 작성 (이유를 한국어로 제공하도록 요청)
-message = f"""
-현재 시장 지표는 다음과 같습니다:
-- 종가: {latest_data['close']}
-- SMA_20: {latest_data['SMA_20']}
-- EMA_50: {latest_data['EMA_50']}
-- RSI_14: {latest_data['RSI_14']}
-- MACD: {latest_data['MACD']}
-- MACD Signal: {latest_data['MACD_signal']}
-- Ichimoku Conversion Line: {latest_data['ichimoku_conversion']}
-- Ichimoku Base Line: {latest_data['ichimoku_base']}
-- Fibonacci 0.236: {latest_data['fib_0.236']}
-- Fibonacci 0.382: {latest_data['fib_0.382']}
-- Fibonacci 0.5: {latest_data['fib_0.5']}
-- Fibonacci 0.618: {latest_data['fib_0.618']}
-- Fibonacci 0.786: {latest_data['fib_0.786']}
-
-이 지표를 바탕으로 다음 형식으로 매매 포지션을 결정해 주세요:
-{{
-  "decision": "open long" (매수), "open short" (매도), "close long" (롱 청산), "close short" (숏 청산) 또는 "hold" (관망),
+recent_low = df입), "close long" (롱 청산), "close short" (숏 청산) 또는 "hold" (관망),
   "percentage": 추천 퍼센트 (정수로 표시),
   "reason": 기술적 지표에 기반한 간결한 한국어 설명
 }}
