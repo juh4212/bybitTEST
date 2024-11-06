@@ -1,7 +1,7 @@
 from pybit.unified_trading import HTTP
 import pandas as pd
 import time
-import talib as ta
+import ta
 
 # Bybit API 세션 생성
 session = HTTP()
@@ -43,15 +43,15 @@ df_hourly = df[['open', 'high', 'low', 'close', 'volume']].astype(float)
 # NaN 값 제거
 df_hourly = df_hourly.dropna()
 
-# 보조지표 추가
+# 보조지표 추가 (ta 라이브러리 사용)
 # 20기간 단순 이동 평균 (SMA) 추가
-df_hourly['SMA_20'] = ta.SMA(df_hourly['close'], timeperiod=20)
+df_hourly['SMA_20'] = ta.trend.sma_indicator(df_hourly['close'], window=20)
 
 # 50기간 지수 이동 평균 (EMA) 추가
-df_hourly['EMA_50'] = ta.EMA(df_hourly['close'], timeperiod=50)
+df_hourly['EMA_50'] = ta.trend.ema_indicator(df_hourly['close'], window=50)
 
 # 14기간 상대강도지수 (RSI) 추가
-df_hourly['RSI_14'] = ta.RSI(df_hourly['close'], timeperiod=14)
+df_hourly['RSI_14'] = ta.momentum.rsi(df_hourly['close'], window=14)
 
 # NaN 값 제거 (보조지표 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
 df_hourly = df_hourly.dropna()
