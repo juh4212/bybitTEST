@@ -53,7 +53,6 @@ df_hourly = df_hourly[['open', 'high', 'low', 'close', 'volume']].astype(float)
 df_hourly = df_hourly.dropna()
 
 # 보조지표 추가 (ta 라이브러리 사용)
-# SMA, EMA, RSI
 df_hourly['SMA_20'] = ta.trend.sma_indicator(df_hourly['close'], window=20)
 df_hourly['EMA_50'] = ta.trend.ema_indicator(df_hourly['close'], window=50)
 df_hourly['RSI_14'] = ta.momentum.rsi(df_hourly['close'], window=14)
@@ -80,6 +79,10 @@ df_hourly['fib_0.786'] = recent_high - 0.786 * (recent_high - recent_low)
 
 # NaN 값 제거 (보조지표 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
 df_hourly = df_hourly.dropna()
+
+# 전체 데이터프레임 로그 출력
+print("DataFrame with indicators:")
+print(df_hourly)
 
 # 가장 최근 데이터 추출
 latest_data = df_hourly.iloc[-1].to_dict()
