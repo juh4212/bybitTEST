@@ -77,42 +77,48 @@ df_hourly['fib_0.5'] = (recent_high + recent_low) / 2
 df_hourly['fib_0.618'] = recent_high - 0.618 * (recent_high - recent_low)
 df_hourly['fib_0.786'] = recent_high - 0.786 * (recent_high - recent_low)
 
-#Helacator ai theta 
+# Helacator AI Theta 지표 계산
 ma1_length = 50
 ma2_length = 200
-df['ma1'] = df['close'].rolling(window=ma1_length).mean()
-df['ma2'] = df['close'].rolling(window=ma2_length).mean()
+df_hourly['ma1'] = df_hourly['close'].rolling(window=ma1_length).mean()
+df_hourly['ma2'] = df_hourly['close'].rolling(window=ma2_length).mean()
 
 # Three White Soldiers 패턴 인식 함수
-def three_white_soldiers(data):
-    condition = (
-        (data['close'] > data['open']) &
-        (data['close'].shift(1) > data['open'].shift(1)) &
-        (data['close'].shift(2) > data['open'].shift(2)) &
-        (data['open'].shift(1) <= data['close'].shift(2)) &
-        (data['close'].shift(1) > data['close'].shift(2)) &
-        (data['open'] <= data['close'].shift(1)) &
-        (data['close'] > data['close'].shift(1))
+def three_white_soldiers(df):
+    return (
+        (df['close'] > df['open']) &
+        (df['close'].shift(1) > df['open'].shift(1)) &
+        (df['close'].shift(2) > df['open'].shift(2)) &
+        (df['open'].shift(1) <= df['close'].shift(2)) &
+        (df['close'].shift(1) > df['close'].shift(2)) &
+        (df['open'] <= df['close'].shift(1)) &
+        (df['close'] > df['close'].shift(1))
     )
-    return condition
 
 # Three Black Crows 패턴 인식 함수
-def three_black_crows(data):
-    condition = (
-        (data['close'] < data['open']) &
-        (data['close'].shift(1) < data['open'].shift(1)) &
-        (data['close'].shift(2) < data['open'].shift(2)) &
-        (data['open'].shift(1) >= data['close'].shift(2)) &
-        (data['close'].shift(1) < data['close'].shift(2)) &
-        (data['open'] >= data['close'].shift(1)) &
-        (data['close'] < data['close'].shift(1))
+def three_black_crows(df):
+    return (
+        (df['close'] < df['open']) &
+        (df['close'].shift(1) < df['open'].shift(1)) &
+        (df['close'].shift(2) < df['open'].shift(2)) &
+        (df['open'].shift(1) >= df['close'].shift(2)) &
+        (df['close'].shift(1) < df['close'].shift(2)) &
+        (df['open'] >= df['close'].shift(1)) &
+        (df['close'] < df['close'].shift(1))
     )
-    return condition
 
-# 신호 생성
-df['buy_signal'] = False
-df['sell_signal'] = False
+# Helacator 신호 계산
+df_hourly['buy_signal'] = (
+    three_white_soldiers(df_hourly) &
+    (df_hourly['close'] > df_hourly['ma1']) &
+    (df_hourly['close'] > df_hourly['ma2'])
+)
 
+df_hourly['sell_signal'] = (
+    three_black_crows(df_hourly) &
+    (df_hourly['close'] < df_hourly['ma1']) &
+    (df_hourly['close'] < df_hourly['ma2'])
+)
 
 # NaN 값 제거 (보조지표 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
 df_hourly = df_hourly.dropna()
@@ -124,7 +130,7 @@ print(df_hourly)
 # 가장 최근 데이터 추출
 latest_data = df_hourly.iloc[-1].to_dict()
 
-# ChatGPT 요청 메시지 작성 (이유를 한국어로 제공하도록 요청)
+# ChatGPT 요청 메시지 작성 (Helacator 부분 추가)
 message = f"""
 현재 시장 지표는 다음과 같습니다:
 - 종가: {latest_data['close']}
@@ -140,6 +146,12 @@ message = f"""
 - Fibonacci 0.5: {latest_data['fib_0.5']}
 - Fibonacci 0.618: {latest_data['fib_0.618']}
 - Fibonacci 0.786: {latest_data['fib_0.786']}
+
+Helacator AI Theta 지표는 다음과 같습니다:
+- MA1 ({ma1_length}): {latest_data['ma1']}
+- MA2 ({ma2_length}): {latest_data['ma2']}
+- 최근 매수 신호 (Helacator): {latest_data['buy_signal']}
+- 최근 매도 신호 (Helacator): {latest_data['sell_signal']}
 
 이 지표를 바탕으로 다음 형식으로 매매 포지션을 결정해 주세요:
 {{
