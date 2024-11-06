@@ -3,3 +3,4 @@ numpy
 pybit
 ta
 openai
+python-dotenv
