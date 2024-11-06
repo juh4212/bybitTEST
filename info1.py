@@ -3,29 +3,27 @@ import pandas as pd
 import time
 import ta  # ta 라이브러리 사용
 import os
-import openai
+from openai import OpenAI
 from dotenv import load_dotenv  # 환경 변수를 로드하기 위한 라이브러리
 
 # 환경 변수 로드 (.env 파일에서 OPENAI_API_KEY 가져오기)
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+api_key = os.getenv("OPENAI_API_KEY")
+
+# OpenAI API 클라이언트 생성
+client = OpenAI(api_key=api_key)
 
 # Bybit API 세션 생성
 session = HTTP()
 
-# 현재 시간의 Unix timestamp (초 단위)
-current_time_s = int(time.time())
+# 현재 시간의 Unix timestamp (밀리초 단위)
+current_time_ms = int(time.time() * 1000)
 
-# 7일 전의 Unix timestamp 계산 (168시간 * 3600초)
-start_time_s = current_time_s - (168 * 3600)
+# 7일 전의 Unix timestamp 계산 (168시간 * 3600초 * 1000밀리초)
+start_time_ms = current_time_ms - (168 * 3600 * 1000)
 
 # 1시간 간격의 7일치 데이터 가져오기 (168개 캔들)
-response = session.get_kline(
-    symbol="BTCUSDT",
-    interval="60",
-    limit=168,
-    from_time=start_time_s
-)
+response = session.get_kline(symbol="BTCUSDT", interval="60", limit=168, from_time=start_time_ms)
 data = response.get('result', [])
 
 # 데이터가 비어있을 경우 처리
@@ -33,16 +31,19 @@ if not data:
     raise ValueError("Data retrieval failed. Please check API response.")
 
 # 데이터프레임으로 변환 및 열 이름 확인
-df_hourly = pd.DataFrame(data)
-print("Columns in df_hourly:", df_hourly.columns)  # 열 이름 출력
+df = pd.DataFrame(data)
+print("Columns in dataframe:", df.columns)  # 열 이름 출력
 
-# 필요한 열이 있는지 확인
-required_columns = ['open', 'high', 'low', 'close', 'volume', 'start']
-if not all(column in df_hourly.columns for column in required_columns):
-    raise KeyError(f"One or more required columns are missing in the data: {required_columns}")
+# 'list' 열이 있는지 확인하여 확장
+if 'list' not in df.columns:
+    raise KeyError("'list' column is missing in the data. Check API response structure.")
 
-# 'start'를 datetime 형식으로 변환하고 인덱스로 설정 (초 단위로 변환)
-df_hourly['start_at'] = pd.to_datetime(df_hourly['start'], unit='s')
+# 'list' 열의 내용을 개별 열로 확장
+columns = ['start_time', 'open', 'high', 'low', 'close', 'volume', 'turnover']
+df_hourly = pd.DataFrame(df['list'].tolist(), columns=columns)
+
+# 'start_time'을 datetime 형식으로 변환하고 인덱스로 설정 (밀리초 단위로 변환)
+df_hourly['start_at'] = pd.to_datetime(df_hourly['start_time'], unit='ms')
 df_hourly.set_index('start_at', inplace=True)
 
 # 필요한 열만 선택하고 데이터 타입을 float으로 변환
@@ -82,42 +83,12 @@ ma2_length = 200
 df_hourly['ma1'] = df_hourly['close'].rolling(window=ma1_length).mean()
 df_hourly['ma2'] = df_hourly['close'].rolling(window=ma2_length).mean()
 
-# Three White Soldiers 패턴 인식 함수
-def three_white_soldiers(data):
-    condition = (
-        (data['close'] > data['open']) &
-        (data['close'].shift(1) > data['open'].shift(1)) &
-        (data['close'].shift(2) > data['open'].shift(2)) &
-        (data['open'].shift(1) <= data['close'].shift(2)) &
-        (data['close'].shift(1) > data['close'].shift(2)) &
-        (data['open'] <= data['close'].shift(1)) &
-        (data['close'] > data['close'].shift(1))
-    )
-    return condition
-
-# Three Black Crows 패턴 인식 함수
-def three_black_crows(data):
-    condition = (
-        (data['close'] < data['open']) &
-        (data['close'].shift(1) < data['open'].shift(1)) &
-        (data['close'].shift(2) < data['open'].shift(2)) &
-        (data['open'].shift(1) >= data['close'].shift(2)) &
-        (data['close'].shift(1) < data['close'].shift(2)) &
-        (data['open'] >= data['close'].shift(1)) &
-        (data['close'] < data['close'].shift(1))
-    )
-    return condition
-
-# 패턴 인식 결과를 데이터프레임에 추가
+# Three White Soldiers 및 Three Black Crows 패턴 인식 결과를 데이터프레임에 추가
 df_hourly['tws_detected'] = three_white_soldiers(df_hourly)
 df_hourly['tbc_detected'] = three_black_crows(df_hourly)
 
-# NaN 값 제거 (보조지표 및 패턴 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
+# NaN 값 제거 (보조지표 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
 df_hourly = df_hourly.dropna()
-
-# 전체 데이터프레임 로그 출력
-print("DataFrame with indicators:")
-print(df_hourly)
 
 # 가장 최근 데이터 추출
 latest_data = df_hourly.iloc[-1].to_dict()
@@ -153,7 +124,7 @@ message = f"""
   "percentage": 추천 퍼센트 (정수로 표시),
   "reason": 기술적 지표에 기반한 간결한 한국어 설명
 }}
-
+"""
 예시 응답:
 1. {{
   "decision": "open long",
@@ -182,14 +153,14 @@ message = f"""
 }}
 """
 
-# OpenAI API 호출 (gpt-4 모델 사용)
-response = openai.ChatCompletion.create(
-    model="gpt-4",
+# ChatGPT API 호출 (gpt-4o 모델 사용)
+response = client.chat.completions.create(
     messages=[
         {"role": "user", "content": message}
-    ]
+    ],
+    model="gpt-4o",
 )
 
 # ChatGPT의 응답 추출
-chatgpt_response = response['choices'][0]['message']['content'].strip()
+chatgpt_response = response.choices[0].message.content.strip()
 print("ChatGPT Response:", chatgpt_response)
