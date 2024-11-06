@@ -25,6 +25,7 @@ start_time_ms = current_time_ms - (168 * 3600 * 1000)
 # 1시간 간격의 7일치 데이터 가져오기 (168개 캔들)
 response = session.get_kline(symbol="BTCUSDT", interval="60", limit=168, from_time=start_time_ms)
 data = response.get('result', [])
+print(response)  # 데이터 구조 확인
 
 # 데이터가 비어있을 경우 처리
 if not data:
