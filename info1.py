@@ -57,7 +57,7 @@ df_hourly = df_hourly.dropna()
 # 가장 최근 데이터 추출
 latest_data = df_hourly.iloc[-1].to_dict()
 
-# ChatGPT에게 요청할 메시지 작성
+# ChatGPT 요청 메시지 작성
 message = f"""
 Given the current market indicators:
 - Close price: {latest_data['close']}
@@ -86,14 +86,13 @@ Example responses:
 """
 
 # ChatGPT API 호출
-response = openai.ChatCompletion.create(
-    model="gpt-4",
-    messages=[
-        {"role": "system", "content": "You are a financial trading assistant providing trading recommendations based on indicators."},
-        {"role": "user", "content": message}
-    ]
+response = openai.Completion.create(
+    model="text-davinci-003",
+    prompt=message,
+    max_tokens=100,
+    temperature=0.5
 )
 
 # ChatGPT의 응답 추출
-chatgpt_response = response['choices'][0]['message']['content']
+chatgpt_response = response['choices'][0]['text'].strip()
 print("ChatGPT Response:", chatgpt_response)
