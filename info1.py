@@ -124,7 +124,7 @@ message = f"""
   "percentage": 추천 퍼센트 (정수로 표시),
   "reason": 기술적 지표에 기반한 간결한 한국어 설명
 }}
-"""
+
 예시 응답:
 1. {{
   "decision": "open long",
