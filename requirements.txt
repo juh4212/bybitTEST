@@ -2,3 +2,4 @@ pandas
 numpy
 pybit
 ta
+ta-lib
