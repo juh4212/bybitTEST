@@ -63,31 +63,31 @@ df_hourly = df_hourly.dropna()
 # 가장 최근 데이터 추출
 latest_data = df_hourly.iloc[-1].to_dict()
 
-# ChatGPT 요청 메시지 작성
+# ChatGPT 요청 메시지 작성 (이유를 한국어로 제공하도록 요청)
 message = f"""
-Given the current market indicators:
-- Close price: {latest_data['close']}
+현재 시장 지표는 다음과 같습니다:
+- 종가: {latest_data['close']}
 - SMA_20: {latest_data['SMA_20']}
 - EMA_50: {latest_data['EMA_50']}
 - RSI_14: {latest_data['RSI_14']}
 
-Based on these indicators, please provide a trading position decision in the format:
+이 지표를 바탕으로 다음 형식으로 매매 포지션을 결정해 주세요:
 {{
-  "decision": "long" or "short" or "hold",
-  "percentage": recommended percentage (integer),
-  "reason": short explanation in English
+  "decision": "long" (매수), "short" (매도) 또는 "hold" (관망),
+  "percentage": 추천 퍼센트 (정수로 표시),
+  "reason": 한국어로 짧은 이유
 }}
 
-Example responses:
+예시 응답:
 1. {{
   "decision": "long",
   "percentage": 50,
-  "reason": "Indicators suggest a positive trend with RSI moving upwards."
+  "reason": "RSI와 EMA가 상승 추세를 보여 매수 포지션이 유리합니다."
 }}
 2. {{
   "decision": "short",
   "percentage": 30,
-  "reason": "RSI shows overbought condition, indicating a potential downward correction."
+  "reason": "RSI가 과매수 상태로 하락 가능성이 높아 매도 포지션을 권장합니다."
 }}
 """
 
