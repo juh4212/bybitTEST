@@ -73,21 +73,36 @@ message = f"""
 
 이 지표를 바탕으로 다음 형식으로 매매 포지션을 결정해 주세요:
 {{
-  "decision": "long" (매수), "short" (매도) 또는 "hold" (관망),
+  "decision": "open long" (매수), "open short" (매도), "close long" (롱 청산), "close short" (숏 청산) 또는 "hold" (관망),
   "percentage": 추천 퍼센트 (정수로 표시),
-  "reason": 한국어로 짧은 이유
+  "reason": 기술적 지표에 기반한 간결한 한국어 설명
 }}
 
 예시 응답:
 1. {{
-  "decision": "long",
+  "decision": "open long",
   "percentage": 50,
-  "reason": "RSI와 EMA가 상승 추세를 보여 매수 포지션이 유리합니다."
+  "reason": "RSI와 EMA가 상승 추세를 나타내고 있어 매수 포지션 진입이 유리할 것으로 보입니다."
 }}
 2. {{
-  "decision": "short",
+  "decision": "open short",
   "percentage": 30,
-  "reason": "RSI가 과매수 상태로 하락 가능성이 높아 매도 포지션을 권장합니다."
+  "reason": "RSI가 과매수 상태에 가까워져 하락 가능성이 커졌으므로 매도 포지션을 추천합니다."
+}}
+3. {{
+  "decision": "hold",
+  "percentage": 0,
+  "reason": "포지션 진입이 애매한 상황이며, 추세가 불확실하여 관망이 적절해 보입니다."
+}}
+4. {{
+  "decision": "close long",
+  "percentage": -30,
+  "reason": "롱 포지션을 보유 중인 상황에서 일부 이익 실현을 하거나 리스크 관리를 위해 포지션을 줄이는 것이 좋습니다."
+}}
+5. {{
+  "decision": "close short",
+  "percentage": -50,
+  "reason": "숏 포지션을 보유 중인 상황에서 일부 이익 실현을 하거나 시장 변동성에 대비해 리스크를 줄이는 것이 좋습니다."
 }}
 """
 
@@ -96,7 +111,7 @@ response = client.chat.completions.create(
     messages=[
         {"role": "user", "content": message}
     ],
-    model="gpt-3.5-turbo",
+    model="gpt-4o",
 )
 
 # ChatGPT의 응답 추출
