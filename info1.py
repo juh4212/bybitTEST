@@ -77,38 +77,6 @@ df_hourly['fib_0.5'] = (recent_high + recent_low) / 2
 df_hourly['fib_0.618'] = recent_high - 0.618 * (recent_high - recent_low)
 df_hourly['fib_0.786'] = recent_high - 0.786 * (recent_high - recent_low)
 
-#Helacator ai theta 
-ma1_length = 50
-ma2_length = 200
-df['ma1'] = df['close'].rolling(window=ma1_length).mean()
-df['ma2'] = df['close'].rolling(window=ma2_length).mean()
-
-# Three White Soldiers 패턴 인식 함수
-def three_white_soldiers(data):
-    condition = (
-        (data['close'] > data['open']) &
-        (data['close'].shift(1) > data['open'].shift(1)) &
-        (data['close'].shift(2) > data['open'].shift(2)) &
-        (data['open'].shift(1) <= data['close'].shift(2)) &
-        (data['close'].shift(1) > data['close'].shift(2)) &
-        (data['open'] <= data['close'].shift(1)) &
-        (data['close'] > data['close'].shift(1))
-    )
-    return condition
-
-# Three Black Crows 패턴 인식 함수
-def three_black_crows(data):
-    condition = (
-        (data['close'] < data['open']) &
-        (data['close'].shift(1) < data['open'].shift(1)) &
-        (data['close'].shift(2) < data['open'].shift(2)) &
-        (data['open'].shift(1) >= data['close'].shift(2)) &
-        (data['close'].shift(1) < data['close'].shift(2)) &
-        (data['open'] >= data['close'].shift(1)) &
-        (data['close'] < data['close'].shift(1))
-    )
-    return condition
-
 # NaN 값 제거 (보조지표 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
 df_hourly = df_hourly.dropna()
 
