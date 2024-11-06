@@ -77,7 +77,13 @@ df_hourly['fib_0.5'] = (recent_high + recent_low) / 2
 df_hourly['fib_0.618'] = recent_high - 0.618 * (recent_high - recent_low)
 df_hourly['fib_0.786'] = recent_high - 0.786 * (recent_high - recent_low)
 
-# Helacator 부분: Three White Soldiers 및 Three Black Crows 패턴 인식 함수
+# Helacator ai theta
+ma1_length = 50
+ma2_length = 200
+df_hourly['ma1'] = df_hourly['close'].rolling(window=ma1_length).mean()
+df_hourly['ma2'] = df_hourly['close'].rolling(window=ma2_length).mean()
+
+# Three White Soldiers 패턴 인식 함수
 def three_white_soldiers(data):
     condition = (
         (data['close'] > data['open']) &
@@ -90,6 +96,7 @@ def three_white_soldiers(data):
     )
     return condition
 
+# Three Black Crows 패턴 인식 함수
 def three_black_crows(data):
     condition = (
         (data['close'] < data['open']) &
@@ -136,6 +143,8 @@ message = f"""
 - Fibonacci 0.5: {latest_data['fib_0.5']}
 - Fibonacci 0.618: {latest_data['fib_0.618']}
 - Fibonacci 0.786: {latest_data['fib_0.786']}
+- Helacator MA1: {latest_data['ma1']}
+- Helacator MA2: {latest_data['ma2']}
 - Three White Soldiers 패턴 감지 여부: {tws_detected}
 - Three Black Crows 패턴 감지 여부: {tbc_detected}
 
