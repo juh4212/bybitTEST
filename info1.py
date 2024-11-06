@@ -77,11 +77,11 @@ df_hourly['fib_0.5'] = (recent_high + recent_low) / 2
 df_hourly['fib_0.618'] = recent_high - 0.618 * (recent_high - recent_low)
 df_hourly['fib_0.786'] = recent_high - 0.786 * (recent_high - recent_low)
 
-# Helacator ai theta
+#Helacator ai theta 
 ma1_length = 50
 ma2_length = 200
-df_hourly['ma1'] = df_hourly['close'].rolling(window=ma1_length).mean()
-df_hourly['ma2'] = df_hourly['close'].rolling(window=ma2_length).mean()
+df['ma1'] = df['close'].rolling(window=ma1_length).mean()
+df['ma2'] = df['close'].rolling(window=ma2_length).mean()
 
 # Three White Soldiers 패턴 인식 함수
 def three_white_soldiers(data):
@@ -109,10 +109,6 @@ def three_black_crows(data):
     )
     return condition
 
-# Helacator 패턴 결과를 데이터프레임에 추가
-df_hourly['three_white_soldiers'] = three_white_soldiers(df_hourly)
-df_hourly['three_black_crows'] = three_black_crows(df_hourly)
-
 # NaN 값 제거 (보조지표 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
 df_hourly = df_hourly.dropna()
 
@@ -122,10 +118,6 @@ print(df_hourly)
 
 # 가장 최근 데이터 추출
 latest_data = df_hourly.iloc[-1].to_dict()
-
-# Helacator 패턴 감지 결과 추출
-tws_detected = latest_data['three_white_soldiers']
-tbc_detected = latest_data['three_black_crows']
 
 # ChatGPT 요청 메시지 작성 (이유를 한국어로 제공하도록 요청)
 message = f"""
@@ -183,12 +175,12 @@ message = f"""
 }}
 """
 
-# ChatGPT API 호출 (`gpt-4` 모델 사용)
+# ChatGPT API 호출 (`gpt-4o` 모델 사용)
 response = client.chat.completions.create(
     messages=[
         {"role": "user", "content": message}
     ],
-    model="gpt-4",
+    model="gpt-4o",
 )
 
 # ChatGPT의 응답 추출
