@@ -77,25 +77,47 @@ df_hourly['fib_0.5'] = (recent_high + recent_low) / 2
 df_hourly['fib_0.618'] = recent_high - 0.618 * (recent_high - recent_low)
 df_hourly['fib_0.786'] = recent_high - 0.786 * (recent_high - recent_low)
 
-# Helacator ai theta
+#Helacator ai theta 
 ma1_length = 50
 ma2_length = 200
-df_hourly['ma1'] = df_hourly['close'].rolling(window=ma1_length).mean()
-df_hourly['ma2'] = df_hourly['close'].rolling(window=ma2_length).mean()
+df['ma1'] = df['close'].rolling(window=ma1_length).mean()
+df['ma2'] = df['close'].rolling(window=ma2_length).mean()
 
-# Three White Soldiers 및 Three Black Crows 패턴 인식 결과를 데이터프레임에 추가
-df_hourly['tws_detected'] = three_white_soldiers(df_hourly)
-df_hourly['tbc_detected'] = three_black_crows(df_hourly)
+# Three White Soldiers 패턴 인식 함수
+def three_white_soldiers(data):
+    condition = (
+        (data['close'] > data['open']) &
+        (data['close'].shift(1) > data['open'].shift(1)) &
+        (data['close'].shift(2) > data['open'].shift(2)) &
+        (data['open'].shift(1) <= data['close'].shift(2)) &
+        (data['close'].shift(1) > data['close'].shift(2)) &
+        (data['open'] <= data['close'].shift(1)) &
+        (data['close'] > data['close'].shift(1))
+    )
+    return condition
+
+# Three Black Crows 패턴 인식 함수
+def three_black_crows(data):
+    condition = (
+        (data['close'] < data['open']) &
+        (data['close'].shift(1) < data['open'].shift(1)) &
+        (data['close'].shift(2) < data['open'].shift(2)) &
+        (data['open'].shift(1) >= data['close'].shift(2)) &
+        (data['close'].shift(1) < data['close'].shift(2)) &
+        (data['open'] >= data['close'].shift(1)) &
+        (data['close'] < data['close'].shift(1))
+    )
+    return condition
 
 # NaN 값 제거 (보조지표 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
 df_hourly = df_hourly.dropna()
 
+# 전체 데이터프레임 로그 출력
+print("DataFrame with indicators:")
+print(df_hourly)
+
 # 가장 최근 데이터 추출
 latest_data = df_hourly.iloc[-1].to_dict()
-
-# 패턴 감지 여부 추출
-tws_detected = latest_data['tws_detected']
-tbc_detected = latest_data['tbc_detected']
 
 # ChatGPT 요청 메시지 작성 (이유를 한국어로 제공하도록 요청)
 message = f"""
@@ -113,10 +135,6 @@ message = f"""
 - Fibonacci 0.5: {latest_data['fib_0.5']}
 - Fibonacci 0.618: {latest_data['fib_0.618']}
 - Fibonacci 0.786: {latest_data['fib_0.786']}
-- Helacator MA1: {latest_data['ma1']}
-- Helacator MA2: {latest_data['ma2']}
-- Three White Soldiers 패턴 감지 여부: {tws_detected}
-- Three Black Crows 패턴 감지 여부: {tbc_detected}
 
 이 지표를 바탕으로 다음 형식으로 매매 포지션을 결정해 주세요:
 {{
@@ -153,7 +171,7 @@ message = f"""
 }}
 """
 
-# ChatGPT API 호출 (gpt-4o 모델 사용)
+# ChatGPT API 호출 (`gpt-4o` 모델 사용)
 response = client.chat.completions.create(
     messages=[
         {"role": "user", "content": message}
