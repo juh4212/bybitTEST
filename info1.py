@@ -2,13 +2,19 @@ from pybit.unified_trading import HTTP
 import pandas as pd
 import time
 import ta  # ta 라이브러리 사용
-import openai  # ChatGPT API 호출을 위한 라이브러리
+import os
+from openai import OpenAI
+from dotenv import load_dotenv  # 환경 변수를 로드하기 위한 라이브러리
+
+# 환경 변수 로드 (.env 파일에서 OPENAI_API_KEY 가져오기)
+load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
+
+# OpenAI API 클라이언트 생성
+client = OpenAI(api_key=api_key)
 
 # Bybit API 세션 생성
 session = HTTP()
-
-# OpenAI API 키 설정
-openai.api_key = "YOUR_API_KEY"
 
 # 현재 시간의 Unix timestamp (밀리초 단위)
 current_time_ms = int(time.time() * 1000)
@@ -86,13 +92,13 @@ Example responses:
 """
 
 # ChatGPT API 호출
-response = openai.Completion.create(
-    model="text-davinci-003",
-    prompt=message,
-    max_tokens=100,
-    temperature=0.5
+response = client.chat.completions.create(
+    messages=[
+        {"role": "user", "content": message}
+    ],
+    model="gpt-3.5-turbo",
 )
 
 # ChatGPT의 응답 추출
-chatgpt_response = response['choices'][0]['text'].strip()
+chatgpt_response = response.choices[0].message.content.strip()
 print("ChatGPT Response:", chatgpt_response)
