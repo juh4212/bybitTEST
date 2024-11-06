@@ -2,9 +2,13 @@ from pybit.unified_trading import HTTP
 import pandas as pd
 import time
 import ta  # ta 라이브러리 사용
+import openai  # ChatGPT API 호출을 위한 라이브러리
 
 # Bybit API 세션 생성
 session = HTTP()
+
+# OpenAI API 키 설정
+openai.api_key = "YOUR_API_KEY"
 
 # 현재 시간의 Unix timestamp (밀리초 단위)
 current_time_ms = int(time.time() * 1000)
@@ -18,15 +22,15 @@ data = response.get('result', [])
 
 # 데이터가 비어있을 경우 처리
 if not data:
-    raise ValueError("데이터를 가져오지 못했습니다. API 응답을 확인하세요.")
+    raise ValueError("Data retrieval failed. Please check API response.")
 
 # 데이터프레임으로 변환 및 열 이름 확인
 df = pd.DataFrame(data)
-print("데이터프레임의 열 확인:", df.columns)  # 열 이름 출력
+print("Columns in dataframe:", df.columns)  # 열 이름 출력
 
 # 'list' 열이 있는지 확인하여 확장
 if 'list' not in df.columns:
-    raise KeyError("'list' 열이 데이터에 없습니다. API 응답 구조를 확인하세요.")
+    raise KeyError("'list' column is missing in the data. Check API response structure.")
 
 # 'list' 열의 내용을 개별 열로 확장
 columns = ['start_time', 'open', 'high', 'low', 'close', 'volume', 'turnover']
@@ -43,18 +47,53 @@ df_hourly = df_hourly[['open', 'high', 'low', 'close', 'volume']].astype(float)
 df_hourly = df_hourly.dropna()
 
 # 보조지표 추가 (ta 라이브러리 사용)
-# 20기간 단순 이동 평균 (SMA) 추가
 df_hourly['SMA_20'] = ta.trend.sma_indicator(df_hourly['close'], window=20)
-
-# 50기간 지수 이동 평균 (EMA) 추가
 df_hourly['EMA_50'] = ta.trend.ema_indicator(df_hourly['close'], window=50)
-
-# 14기간 상대강도지수 (RSI) 추가
 df_hourly['RSI_14'] = ta.momentum.rsi(df_hourly['close'], window=14)
 
 # NaN 값 제거 (보조지표 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
 df_hourly = df_hourly.dropna()
 
-# 결과 출력
-print(df_hourly.tail())
-print(f"총 데이터 포인트 수: {len(df_hourly)}")
+# 가장 최근 데이터 추출
+latest_data = df_hourly.iloc[-1].to_dict()
+
+# ChatGPT에게 요청할 메시지 작성
+message = f"""
+Given the current market indicators:
+- Close price: {latest_data['close']}
+- SMA_20: {latest_data['SMA_20']}
+- EMA_50: {latest_data['EMA_50']}
+- RSI_14: {latest_data['RSI_14']}
+
+Based on these indicators, please provide a trading position decision in the format:
+{{
+  "decision": "long" or "short" or "hold",
+  "percentage": recommended percentage (integer),
+  "reason": short explanation in English
+}}
+
+Example responses:
+1. {{
+  "decision": "long",
+  "percentage": 50,
+  "reason": "Indicators suggest a positive trend with RSI moving upwards."
+}}
+2. {{
+  "decision": "short",
+  "percentage": 30,
+  "reason": "RSI shows overbought condition, indicating a potential downward correction."
+}}
+"""
+
+# ChatGPT API 호출
+response = openai.ChatCompletion.create(
+    model="gpt-4",
+    messages=[
+        {"role": "system", "content": "You are a financial trading assistant providing trading recommendations based on indicators."},
+        {"role": "user", "content": message}
+    ]
+)
+
+# ChatGPT의 응답 추출
+chatgpt_response = response['choices'][0]['message']['content']
+print("ChatGPT Response:", chatgpt_response)
