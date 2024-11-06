@@ -53,9 +53,30 @@ df_hourly = df_hourly[['open', 'high', 'low', 'close', 'volume']].astype(float)
 df_hourly = df_hourly.dropna()
 
 # 보조지표 추가 (ta 라이브러리 사용)
+# SMA, EMA, RSI
 df_hourly['SMA_20'] = ta.trend.sma_indicator(df_hourly['close'], window=20)
 df_hourly['EMA_50'] = ta.trend.ema_indicator(df_hourly['close'], window=50)
 df_hourly['RSI_14'] = ta.momentum.rsi(df_hourly['close'], window=14)
+
+# MACD (이동 평균 수렴·확산)
+df_hourly['MACD'] = ta.trend.macd(df_hourly['close'])
+df_hourly['MACD_signal'] = ta.trend.macd_signal(df_hourly['close'])
+df_hourly['MACD_hist'] = ta.trend.macd_diff(df_hourly['close'])
+
+# Ichimoku Cloud (이치모쿠 구름대)
+df_hourly['ichimoku_conversion'] = ta.trend.ichimoku_conversion_line(df_hourly['high'], df_hourly['low'])
+df_hourly['ichimoku_base'] = ta.trend.ichimoku_base_line(df_hourly['high'], df_hourly['low'])
+df_hourly['ichimoku_span_a'] = ta.trend.ichimoku_a(df_hourly['high'], df_hourly['low'])
+df_hourly['ichimoku_span_b'] = ta.trend.ichimoku_b(df_hourly['high'], df_hourly['low'])
+
+# 피보나치 되돌림 레벨 계산 (최근 고점과 저점을 기준으로 함)
+recent_high = df_hourly['high'].max()
+recent_low = df_hourly['low'].min()
+df_hourly['fib_0.236'] = recent_high - 0.236 * (recent_high - recent_low)
+df_hourly['fib_0.382'] = recent_high - 0.382 * (recent_high - recent_low)
+df_hourly['fib_0.5'] = (recent_high + recent_low) / 2
+df_hourly['fib_0.618'] = recent_high - 0.618 * (recent_high - recent_low)
+df_hourly['fib_0.786'] = recent_high - 0.786 * (recent_high - recent_low)
 
 # NaN 값 제거 (보조지표 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
 df_hourly = df_hourly.dropna()
@@ -70,6 +91,15 @@ message = f"""
 - SMA_20: {latest_data['SMA_20']}
 - EMA_50: {latest_data['EMA_50']}
 - RSI_14: {latest_data['RSI_14']}
+- MACD: {latest_data['MACD']}
+- MACD Signal: {latest_data['MACD_signal']}
+- Ichimoku Conversion Line: {latest_data['ichimoku_conversion']}
+- Ichimoku Base Line: {latest_data['ichimoku_base']}
+- Fibonacci 0.236: {latest_data['fib_0.236']}
+- Fibonacci 0.382: {latest_data['fib_0.382']}
+- Fibonacci 0.5: {latest_data['fib_0.5']}
+- Fibonacci 0.618: {latest_data['fib_0.618']}
+- Fibonacci 0.786: {latest_data['fib_0.786']}
 
 이 지표를 바탕으로 다음 형식으로 매매 포지션을 결정해 주세요:
 {{
@@ -101,12 +131,12 @@ message = f"""
 }}
 5. {{
   "decision": "close short",
-  "percentage": -50,
+  "percentage": -30,
   "reason": "숏 포지션을 보유 중인 상황에서 일부 이익 실현을 하거나 시장 변동성에 대비해 리스크를 줄이는 것이 좋습니다."
 }}
 """
 
-# ChatGPT API 호출
+# ChatGPT API 호출 (`gpt-4o` 모델 사용)
 response = client.chat.completions.create(
     messages=[
         {"role": "user", "content": message}
