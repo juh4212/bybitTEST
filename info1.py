@@ -25,7 +25,6 @@ start_time_ms = current_time_ms - (168 * 3600 * 1000)
 # 1시간 간격의 7일치 데이터 가져오기 (168개 캔들)
 response = session.get_kline(symbol="BTCUSDT", interval="60", limit=168, from_time=start_time_ms)
 data = response.get('result', [])
-print(response)  # 데이터 구조 확인
 
 # 데이터가 비어있을 경우 처리
 if not data:
@@ -78,48 +77,34 @@ df_hourly['fib_0.5'] = (recent_high + recent_low) / 2
 df_hourly['fib_0.618'] = recent_high - 0.618 * (recent_high - recent_low)
 df_hourly['fib_0.786'] = recent_high - 0.786 * (recent_high - recent_low)
 
-# Helacator AI Theta 지표 계산
-ma1_length = 50
-ma2_length = 200
-df_hourly['ma1'] = df_hourly['close'].rolling(window=ma1_length).mean()
-df_hourly['ma2'] = df_hourly['close'].rolling(window=ma2_length).mean()
-
-# Three White Soldiers 패턴 인식 함수
-def three_white_soldiers(df):
-    return (
-        (df['close'] > df['open']) &
-        (df['close'].shift(1) > df['open'].shift(1)) &
-        (df['close'].shift(2) > df['open'].shift(2)) &
-        (df['open'].shift(1) <= df['close'].shift(2)) &
-        (df['close'].shift(1) > df['close'].shift(2)) &
-        (df['open'] <= df['close'].shift(1)) &
-        (df['close'] > df['close'].shift(1))
+# Helacator 부분: Three White Soldiers 및 Three Black Crows 패턴 인식 함수
+def three_white_soldiers(data):
+    condition = (
+        (data['close'] > data['open']) &
+        (data['close'].shift(1) > data['open'].shift(1)) &
+        (data['close'].shift(2) > data['open'].shift(2)) &
+        (data['open'].shift(1) <= data['close'].shift(2)) &
+        (data['close'].shift(1) > data['close'].shift(2)) &
+        (data['open'] <= data['close'].shift(1)) &
+        (data['close'] > data['close'].shift(1))
     )
+    return condition
 
-# Three Black Crows 패턴 인식 함수
-def three_black_crows(df):
-    return (
-        (df['close'] < df['open']) &
-        (df['close'].shift(1) < df['open'].shift(1)) &
-        (df['close'].shift(2) < df['open'].shift(2)) &
-        (df['open'].shift(1) >= df['close'].shift(2)) &
-        (df['close'].shift(1) < df['close'].shift(2)) &
-        (df['open'] >= df['close'].shift(1)) &
-        (df['close'] < df['close'].shift(1))
+def three_black_crows(data):
+    condition = (
+        (data['close'] < data['open']) &
+        (data['close'].shift(1) < data['open'].shift(1)) &
+        (data['close'].shift(2) < data['open'].shift(2)) &
+        (data['open'].shift(1) >= data['close'].shift(2)) &
+        (data['close'].shift(1) < data['close'].shift(2)) &
+        (data['open'] >= data['close'].shift(1)) &
+        (data['close'] < data['close'].shift(1))
     )
+    return condition
 
-# Helacator 신호 계산
-df_hourly['buy_signal'] = (
-    three_white_soldiers(df_hourly) &
-    (df_hourly['close'] > df_hourly['ma1']) &
-    (df_hourly['close'] > df_hourly['ma2'])
-)
-
-df_hourly['sell_signal'] = (
-    three_black_crows(df_hourly) &
-    (df_hourly['close'] < df_hourly['ma1']) &
-    (df_hourly['close'] < df_hourly['ma2'])
-)
+# Helacator 패턴 결과를 데이터프레임에 추가
+df_hourly['three_white_soldiers'] = three_white_soldiers(df_hourly)
+df_hourly['three_black_crows'] = three_black_crows(df_hourly)
 
 # NaN 값 제거 (보조지표 계산 후 초기 몇 개 행에 NaN이 있을 수 있음)
 df_hourly = df_hourly.dropna()
@@ -131,7 +116,11 @@ print(df_hourly)
 # 가장 최근 데이터 추출
 latest_data = df_hourly.iloc[-1].to_dict()
 
-# ChatGPT 요청 메시지 작성 (Helacator 부분 추가)
+# Helacator 패턴 감지 결과 추출
+tws_detected = latest_data['three_white_soldiers']
+tbc_detected = latest_data['three_black_crows']
+
+# ChatGPT 요청 메시지 작성 (이유를 한국어로 제공하도록 요청)
 message = f"""
 현재 시장 지표는 다음과 같습니다:
 - 종가: {latest_data['close']}
@@ -147,12 +136,8 @@ message = f"""
 - Fibonacci 0.5: {latest_data['fib_0.5']}
 - Fibonacci 0.618: {latest_data['fib_0.618']}
 - Fibonacci 0.786: {latest_data['fib_0.786']}
-
-Helacator AI Theta 지표는 다음과 같습니다:
-- MA1 ({ma1_length}): {latest_data['ma1']}
-- MA2 ({ma2_length}): {latest_data['ma2']}
-- 최근 매수 신호 (Helacator): {latest_data['buy_signal']}
-- 최근 매도 신호 (Helacator): {latest_data['sell_signal']}
+- Three White Soldiers 패턴 감지 여부: {tws_detected}
+- Three Black Crows 패턴 감지 여부: {tbc_detected}
 
 이 지표를 바탕으로 다음 형식으로 매매 포지션을 결정해 주세요:
 {{
@@ -189,12 +174,12 @@ Helacator AI Theta 지표는 다음과 같습니다:
 }}
 """
 
-# ChatGPT API 호출 (`gpt-4o` 모델 사용)
+# ChatGPT API 호출 (`gpt-4` 모델 사용)
 response = client.chat.completions.create(
     messages=[
         {"role": "user", "content": message}
     ],
-    model="gpt-4o",
+    model="gpt-4",
 )
 
 # ChatGPT의 응답 추출
