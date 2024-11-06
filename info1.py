@@ -70,7 +70,22 @@ df_hourly['ichimoku_span_b'] = ta.trend.ichimoku_b(df_hourly['high'], df_hourly[
 
 # 피보나치 되돌림 레벨 계산 (최근 고점과 저점을 기준으로 함)
 recent_high = df_hourly['high'].max()
-recent_low = df입), "close long" (롱 청산), "close short" (숏 청산) 또는 "hold" (관망),
+recent_low = df_hourly['low'].min()
+df_hourly['fib_0.236'] = recent_high - 0.236 * (recent_high - recent_low)
+df_hourly['fib_0.382'] = recent_high - 0.382 * (recent_high - recent_low)
+df_hourly['fib_0.5'] = (recent_high + recent_low) / 2
+df_hourly['fib_0.618'] = recent_high - 0.618 * (recent_high - recent_low)
+df_hourly['fib_0.786'] = recent_high - 0.786 * (recent_high - recent_low)
+
+#Helacator ai theta 
+ma1_length = 50
+ma2_length = 200
+df['ma1'] = df['close'].rolling(window=ma1_length).mean()
+df['ma2'] = df['close'].rolling(window=ma2_length).mean()
+
+# Three White Soldiers 패턴 인식 함수
+def three_white_soldiers(data):
+    condition = (입), "close long" (롱 청산), "close short" (숏 청산) 또는 "hold" (관망),
   "percentage": 추천 퍼센트 (정수로 표시),
   "reason": 기술적 지표에 기반한 간결한 한국어 설명
 }}
